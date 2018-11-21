@@ -1,0 +1,37 @@
+{
+  "name": "reactx",
+  "version": "1.0.0",
+  "description": "Vuex-like state management for React",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prevwong/reactx.git"
+  },
+  "keywords": [
+    "react",
+    "reactx",
+    "vuex",
+    "state",
+    "management",
+    "simple",
+    "redux"
+  ],
+  "author": "Prev Wong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/prevwong/reactx/issues"
+  },
+  "homepage": "https://github.com/prevwong/reactx#readme",
+  "dependencies": {
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.1.6",
+    "@babel/plugin-proposal-class-properties": "^7.1.0",
+    "parcel-bundler": "^1.6.1"
+  }
+}
