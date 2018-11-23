@@ -1,22 +1,39 @@
-let uid = 0;
-Dep.target = null;
-class Dep {
-    constructor(args) {
-        this.id = uid++;
-        this.subs = [];
+import { defineReactive } from "./observer";
+
+export default class Dep {
+    constructor(comp, key) {
+        this.component = comp;
+        this.key = key;
+        this.subs = new Set();
     }
+
     addSub(sub) {
-        this.subs.push(sub);
+        this.subs.add(sub);
     }
-    removeSub(sub){
-        this.subs.slice(this.subs.indexOf(sub), -1);
-    }
-    depend(){
-        if ( Dep.target) {
+
+    depend() {
+        console.log("DE", Dep.target);
+        if (Dep.target) {
             Dep.target.addDep(this);
         }
     }
-    notify(){
+
+    notify() {
         this.subs.forEach(sub => sub.update());
+        // if (this.component.watch[this.key]) this.component.watch[this.key].call(comp);
     }
 }
+
+Dep.target = null;
+const targetStack = [];
+
+export function pushTarget(_target) {
+    console.log("push", _target);
+    if (Dep.target) targetStack.push(Dep.target);
+    Dep.target = _target;
+}
+
+export function popTarget() {
+    Dep.target = targetStack.pop();
+}
+

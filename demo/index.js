@@ -1,75 +1,52 @@
-import { walk } from "../src.backup/utils/observer";
-import Watcher from "../src.backup/utils/watcher";
+import ReactV from "../src/ReactV";
 import React from "react";
 import ReactDOM from "react-dom"
-// import { mapGetters } from "../src/index.js";
-// import React from "react";
-// import ReactDOM from "react-dom";
-// import store from "./store";
-// import reactx from "../src/index";
-// const { Provider } = reactx;
 
-// class App extends React.Component {
-//     // getters = mapGetters(["allDocuments"])
-//     componentDidMount(){
-//         setTimeout(() => {
-//             console.log("test", store.state)
-//             store.state.documents.documents = ["hi"]
-//         }, 1000)
-//     }
-//     render(){
-//         return (
-//             <Provider store={store}>
-//                 <div className = "app">
-//                     <h2>App</h2>
-//                 </div>
-//             </Provider>
-//         )
-//     }
-// }
-
-// ReactDOM.render(<App />, document.getElementById("main"));
-
-class ReactxComponent extends React.Component {
-    state = {}
-    componentDidMount(){
-        walk(this.state, (o, key, val) => {
-            this.setState(o)
-        });
-        this.mounted();
-    }
-    mounted(){}
-}
-
-class App extends ReactxComponent {
+class App extends ReactV.Component {
     state = {
-        firstName: "Prev",
-        lastName: "Wong"
+        illuminate: 2,
+        times: 1,
+        status: "ready"
     }
-    change(){
-        this.state.firstName = "john"
+    mounted(){
+        setTimeout(() => {
+            this.status = "mounted!";
+        }, 1000);
+    }
+    watch = {
+        status(val, old){
+            console.log("status updated....", val, old);
+        },
+        illuminate(val, old) {
+            if ( val === 3 ) {
+                this.status = "troix";
+            } 
+        },
+        times() {
+            console.log("times updated...")
+        }
+    }
+    methods = {
+        change() {
+            this.times = this.times + 1;
+            this.illuminate = this.illuminate + 1;
+        }
+    }
+    computed = {
+        calc() {
+            return this.illuminate * this.times;
+        }
     }
     render(){
-        const { firstName, lastName } = this.state;
+        const { status, illuminate, times} = this;
         return (
             <div>
-                <h3><span>{firstName}</span> lolo</h3>
-                <a onClick={() => this.change()}>Click me</a>
+                <h3>{status}</h3>
+                <p>{illuminate} + {times}</p>
+                <a onClick={() => this.change()}>Click</a>
             </div>
         )
     }
 }
+
 ReactDOM.render(<App />, document.getElementById("main"));
-
-// const data = {
-//     firstName: "hello",
-//     lastName: "world"
-
-// }
-
-// walk(data);
-
-// const watcher = new Watcher(() => `Hi! My name is ${data.firstName} ${data.lastName}`, (val) => console.log(val));
-// setTimeout(() => {
-//     data.lastName = "hl"
-// }, 1000)

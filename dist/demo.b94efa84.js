@@ -104,7 +104,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   // Override the current require with this new one
   return newRequire;
-})({"src.backup/utils/dep.js":[function(require,module,exports) {
+})({"src/reactivity/dep.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -125,9 +125,11 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 var Dep =
 /*#__PURE__*/
 function () {
-  function Dep() {
+  function Dep(comp, key) {
     _classCallCheck(this, Dep);
 
+    this.component = comp;
+    this.key = key;
     this.subs = new Set();
   }
 
@@ -139,6 +141,8 @@ function () {
   }, {
     key: "depend",
     value: function depend() {
+      console.log("DE", Dep.target);
+
       if (Dep.target) {
         Dep.target.addDep(this);
       }
@@ -148,7 +152,7 @@ function () {
     value: function notify() {
       this.subs.forEach(function (sub) {
         return sub.update();
-      });
+      }); // if (this.component.watch[this.key]) this.component.watch[this.key].call(comp);
     }
   }]);
 
@@ -160,6 +164,7 @@ Dep.target = null;
 var targetStack = [];
 
 function pushTarget(_target) {
+  console.log("push", _target);
   if (Dep.target) targetStack.push(Dep.target);
   Dep.target = _target;
 }
@@ -167,115 +172,92 @@ function pushTarget(_target) {
 function popTarget() {
   Dep.target = targetStack.pop();
 }
-},{"./observer":"src.backup/utils/observer.js"}],"src.backup/utils/observer.js":[function(require,module,exports) {
+},{"./observer":"src/reactivity/observer.js"}],"src/utils/index.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.hasOwn = hasOwn;
+exports.extend = extend;
+
+function hasOwn(obj, key) {
+  return hasOwnProperty.call(obj, key);
+}
+
+function extend(to, _from) {
+  for (var key in _from) {
+    to[key] = _from[key];
+  }
+
+  return to;
+}
+},{}],"src/reactivity/observer.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.proxy = proxy;
 exports.walk = walk;
 
 var _dep = _interopRequireDefault(require("./dep"));
+
+var _utils = require("../utils");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-function defineReactive(cb, obj, key, val) {
+var sharedPropertyDefinition = {
+  enumerable: true,
+  configurable: true,
+  get: function get() {},
+  set: function set() {}
+};
+
+function proxy(target, sourceKey, key) {
+  sharedPropertyDefinition.get = function proxyGetter() {
+    return this[sourceKey][key];
+  };
+
+  sharedPropertyDefinition.set = function proxySetter(val) {
+    this[sourceKey][key] = val;
+  };
+
+  Object.defineProperty(target, key, sharedPropertyDefinition);
+}
+
+function defineReactive(comp, cb, obj, key, val) {
   if (val !== null && _typeof(val) === 'object') {
     walk(val);
   }
 
-  var dep = new _dep.default();
-  Object.defineProperty(obj, key, {
+  proxy(comp, 'state', key);
+  var object = Object.defineProperty(comp.state, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter() {
-      console.log("accessed", key);
-
-      if (_dep.default.target) {
-        dep.depend();
-      }
-
       return val;
     },
     set: function reactiveSetter(newVal) {
+      if (comp.watch[key]) comp.watch[key].call(comp, newVal, val);
       val = newVal;
-      cb(obj, key, newVal);
-      dep.notify();
+      cb(object, key, newVal);
     }
   });
+  return object;
 }
 
-function walk(obj, cb) {
+function walk(comp, cb) {
+  var obj = comp.state;
   var keys = Object.keys(obj);
 
   for (var i = 0; i < keys.length; i++) {
-    defineReactive(cb, obj, keys[i], obj[keys[i]]);
+    defineReactive(comp, cb, obj, keys[i], obj[keys[i]]);
   }
 }
-
-window.Dep = _dep.default;
-},{"./dep":"src.backup/utils/dep.js"}],"src.backup/utils/watcher.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _dep = require("./dep");
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-var Watcher =
-/*#__PURE__*/
-function () {
-  function Watcher(getter, cb) {
-    _classCallCheck(this, Watcher);
-
-    this.getter = getter; // function that returns a value based on reactive properties
-
-    this.cb = cb; // function that is run on value updates, and is passed value and old value
-
-    this.value = this.get();
-    this.cb(this.value, null);
-  }
-
-  _createClass(Watcher, [{
-    key: "get",
-    value: function get() {
-      (0, _dep.pushTarget)(this); // from dep.js
-
-      var value = this.getter();
-      (0, _dep.popTarget)(); // from dep.js
-
-      return value;
-    }
-  }, {
-    key: "addDep",
-    value: function addDep(dep) {
-      dep.addSub(this);
-    }
-  }, {
-    key: "update",
-    value: function update() {
-      var value = this.get();
-      var oldValue = this.value;
-      this.value = value;
-      this.cb(value, oldValue);
-    }
-  }]);
-
-  return Watcher;
-}();
-
-exports.default = Watcher;
-},{"./dep":"src.backup/utils/dep.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
+},{"./dep":"src/reactivity/dep.js","../utils":"src/utils/index.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -2344,7 +2326,117 @@ if ("development" === 'production') {
 } else {
   module.exports = require('./cjs/react.development.js');
 }
-},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"node_modules/scheduler/cjs/scheduler.development.js":[function(require,module,exports) {
+},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"src/base/Component.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _observer = require("../reactivity/observer");
+
+var _react = _interopRequireWildcard(require("react"));
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
+
+function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
+
+function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
+
+function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
+
+function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+var ReactVComponent =
+/*#__PURE__*/
+function (_Component) {
+  _inherits(ReactVComponent, _Component);
+
+  function ReactVComponent() {
+    var _getPrototypeOf2;
+
+    var _this;
+
+    _classCallCheck(this, ReactVComponent);
+
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    _this = _possibleConstructorReturn(this, (_getPrototypeOf2 = _getPrototypeOf(ReactVComponent)).call.apply(_getPrototypeOf2, [this].concat(args)));
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "state", {});
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "methods", {});
+
+    Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentWillMount', {
+      writeable: false,
+      value: function value() {
+        var _this2 = this;
+
+        this.doUpdate();
+        Object.keys(this.methods).forEach(function (fn) {
+          (0, _observer.proxy)(_this2, 'methods', fn);
+        });
+      }
+    });
+    Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentDidMount', {
+      writeable: false,
+      value: function value() {
+        this.mounted();
+      }
+    });
+    return _this;
+  }
+
+  _createClass(ReactVComponent, [{
+    key: "doUpdate",
+    value: function doUpdate() {
+      var _this3 = this;
+
+      (0, _observer.walk)(this, function (o, key, val) {
+        _this3.setState(o, _this3.doUpdate);
+      });
+    }
+  }, {
+    key: "mounted",
+    value: function mounted() {}
+  }]);
+
+  return ReactVComponent;
+}(_react.Component);
+
+exports.default = ReactVComponent;
+},{"../reactivity/observer":"src/reactivity/observer.js","react":"node_modules/react/index.js"}],"src/ReactV.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _Component = _interopRequireDefault(require("./base/Component"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var _default = {
+  Component: _Component.default
+};
+exports.default = _default;
+},{"./base/Component":"src/base/Component.js"}],"node_modules/scheduler/cjs/scheduler.development.js":[function(require,module,exports) {
 /** @license React v16.6.1
  * scheduler.development.js
  *
@@ -24189,9 +24281,7 @@ if ("development" === 'production') {
 },{"./cjs/react-dom.development.js":"node_modules/react-dom/cjs/react-dom.development.js"}],"demo/index.js":[function(require,module,exports) {
 "use strict";
 
-var _observer = require("../src.backup/utils/observer");
-
-var _watcher = _interopRequireDefault(require("../src.backup/utils/watcher"));
+var _ReactV = _interopRequireDefault(require("../src/ReactV"));
 
 var _react = _interopRequireDefault(require("react"));
 
@@ -24219,132 +24309,90 @@ function _assertThisInitialized(self) { if (self === void 0) { throw new Referen
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-// import { mapGetters } from "../src/index.js";
-// import React from "react";
-// import ReactDOM from "react-dom";
-// import store from "./store";
-// import reactx from "../src/index";
-// const { Provider } = reactx;
-// class App extends React.Component {
-//     // getters = mapGetters(["allDocuments"])
-//     componentDidMount(){
-//         setTimeout(() => {
-//             console.log("test", store.state)
-//             store.state.documents.documents = ["hi"]
-//         }, 1000)
-//     }
-//     render(){
-//         return (
-//             <Provider store={store}>
-//                 <div className = "app">
-//                     <h2>App</h2>
-//                 </div>
-//             </Provider>
-//         )
-//     }
-// }
-// ReactDOM.render(<App />, document.getElementById("main"));
-var ReactxComponent =
+var App =
 /*#__PURE__*/
-function (_React$Component) {
-  _inherits(ReactxComponent, _React$Component);
+function (_ReactV$Component) {
+  _inherits(App, _ReactV$Component);
 
-  function ReactxComponent() {
+  function App() {
     var _getPrototypeOf2;
 
     var _this;
 
-    _classCallCheck(this, ReactxComponent);
+    _classCallCheck(this, App);
 
     for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
       args[_key] = arguments[_key];
     }
 
-    _this = _possibleConstructorReturn(this, (_getPrototypeOf2 = _getPrototypeOf(ReactxComponent)).call.apply(_getPrototypeOf2, [this].concat(args)));
+    _this = _possibleConstructorReturn(this, (_getPrototypeOf2 = _getPrototypeOf(App)).call.apply(_getPrototypeOf2, [this].concat(args)));
 
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "state", {});
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "state", {
+      illuminate: 2,
+      times: 1,
+      status: "ready"
+    });
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "watch", {
+      status: function status(val, old) {
+        console.log("status updated....", val, old);
+      },
+      illuminate: function illuminate(val, old) {
+        if (val === 3) {
+          this.status = "troix";
+        }
+      },
+      times: function times() {
+        console.log("times updated...");
+      }
+    });
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "methods", {
+      change: function change() {
+        this.times = this.times + 1;
+        this.illuminate = this.illuminate + 1;
+      }
+    });
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "computed", {
+      calc: function calc() {
+        return this.illuminate * this.times;
+      }
+    });
 
     return _this;
   }
 
-  _createClass(ReactxComponent, [{
-    key: "componentDidMount",
-    value: function componentDidMount() {
+  _createClass(App, [{
+    key: "mounted",
+    value: function mounted() {
       var _this2 = this;
 
-      (0, _observer.walk)(this.state, function (o, key, val) {
-        _this2.setState(o);
-      });
-      this.mounted();
-    }
-  }, {
-    key: "mounted",
-    value: function mounted() {}
-  }]);
-
-  return ReactxComponent;
-}(_react.default.Component);
-
-var App =
-/*#__PURE__*/
-function (_ReactxComponent) {
-  _inherits(App, _ReactxComponent);
-
-  function App() {
-    var _getPrototypeOf3;
-
-    var _this3;
-
-    _classCallCheck(this, App);
-
-    for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-      args[_key2] = arguments[_key2];
-    }
-
-    _this3 = _possibleConstructorReturn(this, (_getPrototypeOf3 = _getPrototypeOf(App)).call.apply(_getPrototypeOf3, [this].concat(args)));
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "state", {
-      firstName: "Prev",
-      lastName: "Wong"
-    });
-
-    return _this3;
-  }
-
-  _createClass(App, [{
-    key: "change",
-    value: function change() {
-      this.state.firstName = "john";
+      setTimeout(function () {
+        _this2.status = "mounted!";
+      }, 1000);
     }
   }, {
     key: "render",
     value: function render() {
-      var _this4 = this;
+      var _this3 = this;
 
-      var _this$state = this.state,
-          firstName = _this$state.firstName,
-          lastName = _this$state.lastName;
-      return _react.default.createElement("div", null, _react.default.createElement("h3", null, _react.default.createElement("span", null, firstName), " lolo"), _react.default.createElement("a", {
+      var status = this.status,
+          illuminate = this.illuminate,
+          times = this.times;
+      return _react.default.createElement("div", null, _react.default.createElement("h3", null, status), _react.default.createElement("p", null, illuminate, " + ", times), _react.default.createElement("a", {
         onClick: function onClick() {
-          return _this4.change();
+          return _this3.change();
         }
-      }, "Click me"));
+      }, "Click"));
     }
   }]);
 
   return App;
-}(ReactxComponent);
+}(_ReactV.default.Component);
 
-_reactDom.default.render(_react.default.createElement(App, null), document.getElementById("main")); // const data = {
-//     firstName: "hello",
-//     lastName: "world"
-// }
-// walk(data);
-// const watcher = new Watcher(() => `Hi! My name is ${data.firstName} ${data.lastName}`, (val) => console.log(val));
-// setTimeout(() => {
-//     data.lastName = "hl"
-// }, 1000)
-},{"../src.backup/utils/observer":"src.backup/utils/observer.js","../src.backup/utils/watcher":"src.backup/utils/watcher.js","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+_reactDom.default.render(_react.default.createElement(App, null), document.getElementById("main"));
+},{"../src/ReactV":"src/ReactV.js","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -24371,7 +24419,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "58128" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59066" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);
@@ -24513,5 +24561,5 @@ function hmrAccept(bundle, id) {
     return hmrAccept(global.parcelRequire, id);
   });
 }
-},{}]},{},["../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js","demo/index.js"], null)
+},{}]},{},["../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js","demo/index.js"], null)
 //# sourceMappingURL=/demo.b94efa84.map

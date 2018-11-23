@@ -1,16 +1,15 @@
 import Dep from "./dep";
 
-function defineReactive(cb, obj, key, val) {
+function defineReactive(comp, cb, obj, key, val) {
     if ( val!==null && typeof val === 'object') {
         walk(val);
     }
 
-    const dep = new Dep();
-    Object.defineProperty(obj, key, {
+    const dep = new Dep(comp, key);
+    let object = Object.defineProperty(comp.state, key, {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
-            console.log("accessed", key)
             if ( Dep.target ) {
                 dep.depend();
             }
@@ -18,16 +17,19 @@ function defineReactive(cb, obj, key, val) {
         },
         set: function reactiveSetter(newVal) {
             val = newVal;
-            cb(obj, key, newVal);
+            cb(object, key, newVal);
             dep.notify();
         }
-    })
+    });
+
+    return object;
 }
 
-export function walk(obj, cb) {
+export function walk(comp, cb) {
+    let obj = comp.state;
     const keys = Object.keys(obj);
     for(let i = 0; i < keys.length; i++ ) {
-        defineReactive(cb, obj, keys[i], obj[keys[i]])
+        defineReactive(comp, cb, obj, keys[i], obj[keys[i]]);
     }
 }
 
