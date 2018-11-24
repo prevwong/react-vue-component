@@ -249,7 +249,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.proxy = proxy;
 exports.walk = walk;
-exports.observe = exports.Observer = void 0;
+exports.observe = exports.Observer = exports.sharedPropertyDefinition = void 0;
 
 var _dep = _interopRequireDefault(require("./dep"));
 
@@ -271,6 +271,7 @@ var sharedPropertyDefinition = {
   get: function get() {},
   set: function set() {}
 };
+exports.sharedPropertyDefinition = sharedPropertyDefinition;
 
 function proxy(target, sourceKey, key) {
   sharedPropertyDefinition.get = function proxyGetter() {
@@ -2462,7 +2463,7 @@ function () {
     this.newDeps = [];
     this.depIds = new Set();
     this.newDepIds = new Set();
-    this.getter = (0, _utils.parsePath)(expOrFn);
+    this.getter = typeof expOrFn === "function" ? expOrFn : (0, _utils.parsePath)(expOrFn);
     this.value = this.get();
   }
 
@@ -2476,7 +2477,7 @@ function () {
       try {
         value = this.getter(comp, comp);
       } catch (e) {
-        console.error("Error in getter", e);
+        console.error("Error in getter", this);
       } finally {
         (0, _dep.popTarget)();
       }
@@ -2541,13 +2542,19 @@ var _observer = require("../reactivity/observer");
 
 var _react = _interopRequireWildcard(require("react"));
 
-var _watcher = require("../reactivity/watcher");
+var _watcher = _interopRequireWildcard(require("../reactivity/watcher"));
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
+
+function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
 function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
 
@@ -2559,37 +2566,7 @@ function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || func
 
 function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-var Watch =
-/*#__PURE__*/
-function () {
-  function Watch(key, fn) {
-    _classCallCheck(this, Watch);
-
-    _defineProperty(this, "key", void 0);
-
-    _defineProperty(this, "fn", void 0);
-
-    this.key = key;
-    this.fn = fn;
-  }
-
-  _createClass(Watch, [{
-    key: "run",
-    value: function run() {
-      this.fn();
-    }
-  }]);
-
-  return Watch;
-}();
 
 var ReactVComponent =
 /*#__PURE__*/
@@ -2615,13 +2592,14 @@ function (_Component) {
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "methods", {});
 
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "computed", {});
+
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "_watch", {});
 
     Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentWillMount', {
       writeable: false,
       value: function value() {
         this._state = _objectSpread({}, this.state);
-        console.log(this._state);
         this.doUpdate();
       }
     });
@@ -2646,6 +2624,7 @@ function (_Component) {
       Object.keys(this.methods).forEach(function (fn) {
         (0, _observer.proxy)(_this2, 'methods', fn);
       });
+      this.initComputed();
       Object.keys(this.state).forEach(function (key) {
         (0, _watcher.createWatcher)(_this2, key, function (newValue, oldValue) {
           if (_this2.watch && _this2.watch[key]) {
@@ -2657,6 +2636,28 @@ function (_Component) {
           });
         });
       });
+    }
+  }, {
+    key: "initComputed",
+    value: function initComputed() {
+      var _this3 = this;
+
+      var watchers = this._computedWatchers = Object.create(null);
+      Object.keys(this.computed).forEach(function (key) {
+        var getter = _this3.computed[key];
+        watchers[key] = new _watcher.default(_this3, getter);
+
+        _this3.defineComputed(key, getter);
+      });
+    }
+  }, {
+    key: "defineComputed",
+    value: function defineComputed(key, fn) {
+      _observer.sharedPropertyDefinition.get = fn;
+
+      _observer.sharedPropertyDefinition.set = function () {};
+
+      Object.defineProperty(this, key, _observer.sharedPropertyDefinition);
     }
   }, {
     key: "mounted",
@@ -24672,8 +24673,9 @@ function (_ReactV$Component2) {
 
       var status = this.status,
           illuminate = this.illuminate,
-          times = this.times;
-      return _react.default.createElement("div", null, _react.default.createElement("h3", null, status), _react.default.createElement("p", null, illuminate, " + ", times), _react.default.createElement(SubApp, {
+          times = this.times,
+          calc = this.calc;
+      return _react.default.createElement("div", null, _react.default.createElement("h3", null, status), _react.default.createElement("p", null, illuminate, "*", times, "=", calc), _react.default.createElement(SubApp, {
         link: status
       }), _react.default.createElement("a", {
         onClick: function onClick() {

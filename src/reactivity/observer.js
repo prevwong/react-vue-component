@@ -1,7 +1,7 @@
 import Dep from "./dep";
 import { extend } from "../utils";
 
-const sharedPropertyDefinition = {
+export const sharedPropertyDefinition = {
     enumerable: true,
     configurable: true,
     get: () => {},

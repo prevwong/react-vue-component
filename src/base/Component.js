@@ -1,23 +1,12 @@
-import { walk, proxy, observe } from "../reactivity/observer";
+import { walk, proxy, observe, sharedPropertyDefinition } from "../reactivity/observer";
 import React, {Component} from "react";
-import { createWatcher } from "../reactivity/watcher";
-
-class Watch {
-    key;
-    fn;
-    constructor(key, fn) {
-        this.key=key;
-        this.fn=fn;
-    }
-    run(){
-        this.fn();
-    }
-}
+import Watcher, { createWatcher } from "../reactivity/watcher";
 
 export default class ReactVComponent extends Component {
     state = {}
     _state = {}
     methods = {}
+    computed = {}
     _watch = {};
     constructor(...args) {
         super(...args);
@@ -25,7 +14,6 @@ export default class ReactVComponent extends Component {
             writeable: false,
             value: function () {
                 this._state = {...this.state};
-                console.log(this._state)
                 this.doUpdate();
             }
         });
@@ -46,6 +34,7 @@ export default class ReactVComponent extends Component {
             proxy(this, 'methods', fn)
         });
 
+        this.initComputed();
 
         Object.keys(this.state).forEach(key => {
             createWatcher(this, key, (newValue, oldValue) => {
@@ -57,6 +46,20 @@ export default class ReactVComponent extends Component {
                 })
             })
         });
+    }
+    initComputed() {
+        const watchers = this._computedWatchers = Object.create(null);
+        Object.keys(this.computed).forEach(key => {
+            const getter = this.computed[key];
+            watchers[key] = new Watcher(this, getter);
+            this.defineComputed(key, getter);
+        })
+    }
+
+    defineComputed(key, fn) {
+        sharedPropertyDefinition.get = fn;
+        sharedPropertyDefinition.set = () => {};
+        Object.defineProperty(this, key, sharedPropertyDefinition);
     }
     mounted() { }
 }

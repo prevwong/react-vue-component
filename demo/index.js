@@ -55,11 +55,11 @@ class App extends ReactV.Component {
         }
     }
     render(){
-        const { status, illuminate, times} = this;
+        const { status, illuminate, times, calc} = this;
         return (
             <div>
                 <h3>{status}</h3>
-                <p>{illuminate} + {times}</p>
+                <p>{illuminate}*{times}={calc}</p>
                 <SubApp link={status}  />
                 <a onClick={() => this.change()}>Click</a>
             </div>

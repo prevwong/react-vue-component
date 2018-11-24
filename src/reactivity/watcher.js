@@ -5,14 +5,14 @@ export default class Watcher {
     comp = null
     cb = () => {}
     constructor(comp, expOrFn, cb) {
-        
+       
         this.comp = comp;
         this.cb = cb;
         this.deps = [];
         this.newDeps = [];
         this.depIds = new Set();
         this.newDepIds = new Set();
-        this.getter = parsePath(expOrFn);
+        this.getter = typeof expOrFn === "function" ? expOrFn : parsePath(expOrFn);
         this.value = this.get();
     }
     get(){ 
@@ -22,7 +22,7 @@ export default class Watcher {
         try {
             value = this.getter(comp, comp);
         } catch(e) {
-            console.error(`Error in getter`, e);
+            console.error(`Error in getter`, this);
         } finally {
             popTarget();
         }
