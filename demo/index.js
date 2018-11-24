@@ -23,7 +23,7 @@ class App extends ReactV.Component {
     state = {
         illuminate: 2,
         times: 1,
-        status: "ready"
+        status: "ready",
     }
     mounted(){
         setTimeout(() => {

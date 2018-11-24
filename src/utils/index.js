@@ -34,3 +34,26 @@ export function remove(arr, item){
         }
     }
 }
+
+export function uniqueObjectKeys(ob, target, ...args) {  
+    const targetKeys = Object.keys(ob[target]);
+    const destination = args.slice(0, args.length - 1);
+    const cb = args[args.length - 1];
+
+    for ( let i = 0; i < targetKeys.length; i++ ) {
+        let existsIn = false;
+        const key = targetKeys[i];
+        for (let j = 0; j < destination.length; j++) {
+            if (ob[destination[j]][key]) {
+                existsIn = destination[j];
+                break;
+            }
+        }
+        if (!existsIn) cb(key);
+        else warn(`(${target} - '${key}') is already defined in ${existsIn}`);
+    }    
+}
+
+export function warn(msg) {
+    console.error(`[v-react warn]: ${msg}`);
+}

@@ -1,9 +1,9 @@
 import { walk, proxy, observe, sharedPropertyDefinition } from "../reactivity/observer";
 import React, {Component} from "react";
 import Watcher, { createWatcher } from "../reactivity/watcher";
+import { uniqueObjectKeys } from "../utils";
 
 export default class ReactVComponent extends Component {
-    state = {}
     _state = {}
     methods = {}
     computed = {}
@@ -13,7 +13,6 @@ export default class ReactVComponent extends Component {
         Object.defineProperty(this, 'componentWillMount', {
             writeable: false,
             value: function () {
-                this._state = {...this.state};
                 this._reactivity();
             }
         });
@@ -26,17 +25,21 @@ export default class ReactVComponent extends Component {
         });
     }
     _reactivity() {
+        uniqueObjectKeys(this, "state", "props", (key) => {
+            this._state[key] = this.state[key];
+            proxy(this, key, '_state');
+        });
         observe(this._state);
-        Object.keys(this.state).forEach(key => {
-            proxy(this, '_state', key);
-        });
-        Object.keys(this.methods).forEach((fn) => {
-            proxy(this, 'methods', fn)
+
+        uniqueObjectKeys(this, "computed", 'props', 'state', (key) => {
+            const getter = this.computed[key];
+            new Watcher(this, getter);
+            proxy(this, key, getter, () => { })
         });
 
-        this.initComputed();
+        uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
 
-        Object.keys(this.state).forEach(key => {
+        Object.keys(this._state).forEach(key => {
             createWatcher(this, key, (newValue, oldValue) => {
                 if (this.watch && this.watch[key]) {
                     this.watch[key].call(this, newValue, oldValue);
@@ -46,20 +49,6 @@ export default class ReactVComponent extends Component {
                 })
             })
         });
-    }
-    initComputed() {
-        const watchers = this._computedWatchers = Object.create(null);
-        Object.keys(this.computed).forEach(key => {
-            const getter = this.computed[key];
-            watchers[key] = new Watcher(this, getter);
-            this.defineComputed(key, getter);
-        })
-    }
-
-    defineComputed(key, fn) {
-        sharedPropertyDefinition.get = fn;
-        sharedPropertyDefinition.set = () => {};
-        Object.defineProperty(this, key, sharedPropertyDefinition);
     }
     mounted() { }
 }

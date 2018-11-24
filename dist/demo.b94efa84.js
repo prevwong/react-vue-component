@@ -114,6 +114,8 @@ exports.hasOwn = hasOwn;
 exports.extend = extend;
 exports.parsePath = parsePath;
 exports.remove = remove;
+exports.uniqueObjectKeys = uniqueObjectKeys;
+exports.warn = warn;
 
 function hasOwn(obj, key) {
   return hasOwnProperty.call(obj, key);
@@ -157,6 +159,35 @@ function remove(arr, item) {
       return arr.splice(index, 1);
     }
   }
+}
+
+function uniqueObjectKeys(ob, target) {
+  var targetKeys = Object.keys(ob[target]);
+
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  var destination = args.slice(0, args.length - 1);
+  var cb = args[args.length - 1];
+
+  for (var i = 0; i < targetKeys.length; i++) {
+    var existsIn = false;
+    var key = targetKeys[i];
+
+    for (var j = 0; j < destination.length; j++) {
+      if (ob[destination[j]][key]) {
+        existsIn = destination[j];
+        break;
+      }
+    }
+
+    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
+  }
+}
+
+function warn(msg) {
+  console.error("[v-react warn]: ".concat(msg));
 }
 },{}],"src/reactivity/dep.js":[function(require,module,exports) {
 "use strict";
@@ -273,15 +304,28 @@ var sharedPropertyDefinition = {
 };
 exports.sharedPropertyDefinition = sharedPropertyDefinition;
 
-function proxy(target, sourceKey, key) {
-  sharedPropertyDefinition.get = function proxyGetter() {
-    return this[sourceKey][key];
-  };
+function proxy(target, key) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
 
-  sharedPropertyDefinition.set = function proxySetter(val) {
-    this[sourceKey][key] = val;
-  };
+  var get, set;
 
+  if (args.length === 2) {
+    get = args[0];
+    set = args[1];
+  } else if (args.length === 1 && typeof args[0] === "string") {
+    get = function proxyGetter() {
+      return this[args[0]][key];
+    };
+
+    set = function proxySetter(val) {
+      this[args[0]][key] = val;
+    };
+  }
+
+  sharedPropertyDefinition.get = get;
+  sharedPropertyDefinition.set = set;
   Object.defineProperty(target, key, sharedPropertyDefinition);
 }
 
@@ -2544,11 +2588,11 @@ var _react = _interopRequireWildcard(require("react"));
 
 var _watcher = _interopRequireWildcard(require("../reactivity/watcher"));
 
+var _utils = require("../utils");
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2586,8 +2630,6 @@ function (_Component) {
 
     _this = _possibleConstructorReturn(this, (_getPrototypeOf2 = _getPrototypeOf(ReactVComponent)).call.apply(_getPrototypeOf2, [this].concat(args)));
 
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "state", {});
-
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "_state", {});
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "methods", {});
@@ -2599,8 +2641,6 @@ function (_Component) {
     Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentWillMount', {
       writeable: false,
       value: function value() {
-        this._state = _objectSpread({}, this.state);
-
         this._reactivity();
       }
     });
@@ -2618,15 +2658,20 @@ function (_Component) {
     value: function _reactivity() {
       var _this2 = this;
 
+      (0, _utils.uniqueObjectKeys)(this, "state", "props", function (key) {
+        _this2._state[key] = _this2.state[key];
+        (0, _observer.proxy)(_this2, key, '_state');
+      });
       (0, _observer.observe)(this._state);
-      Object.keys(this.state).forEach(function (key) {
-        (0, _observer.proxy)(_this2, '_state', key);
+      (0, _utils.uniqueObjectKeys)(this, "computed", 'props', 'state', function (key) {
+        var getter = _this2.computed[key];
+        new _watcher.default(_this2, getter);
+        (0, _observer.proxy)(_this2, key, getter, function () {});
       });
-      Object.keys(this.methods).forEach(function (fn) {
-        (0, _observer.proxy)(_this2, 'methods', fn);
+      (0, _utils.uniqueObjectKeys)(this, "methods", 'props', 'state', 'computed', function (key) {
+        return (0, _observer.proxy)(_this2, key, 'methods');
       });
-      this.initComputed();
-      Object.keys(this.state).forEach(function (key) {
+      Object.keys(this._state).forEach(function (key) {
         (0, _watcher.createWatcher)(_this2, key, function (newValue, oldValue) {
           if (_this2.watch && _this2.watch[key]) {
             _this2.watch[key].call(_this2, newValue, oldValue);
@@ -2639,28 +2684,6 @@ function (_Component) {
       });
     }
   }, {
-    key: "initComputed",
-    value: function initComputed() {
-      var _this3 = this;
-
-      var watchers = this._computedWatchers = Object.create(null);
-      Object.keys(this.computed).forEach(function (key) {
-        var getter = _this3.computed[key];
-        watchers[key] = new _watcher.default(_this3, getter);
-
-        _this3.defineComputed(key, getter);
-      });
-    }
-  }, {
-    key: "defineComputed",
-    value: function defineComputed(key, fn) {
-      _observer.sharedPropertyDefinition.get = fn;
-
-      _observer.sharedPropertyDefinition.set = function () {};
-
-      Object.defineProperty(this, key, _observer.sharedPropertyDefinition);
-    }
-  }, {
     key: "mounted",
     value: function mounted() {}
   }]);
@@ -2669,7 +2692,7 @@ function (_Component) {
 }(_react.Component);
 
 exports.default = ReactVComponent;
-},{"../reactivity/observer":"src/reactivity/observer.js","react":"node_modules/react/index.js","../reactivity/watcher":"src/reactivity/watcher.js"}],"src/ReactV.js":[function(require,module,exports) {
+},{"../reactivity/observer":"src/reactivity/observer.js","react":"node_modules/react/index.js","../reactivity/watcher":"src/reactivity/watcher.js","../utils":"src/utils/index.js"}],"src/ReactV.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

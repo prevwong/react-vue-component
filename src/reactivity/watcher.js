@@ -5,7 +5,6 @@ export default class Watcher {
     comp = null
     cb = () => {}
     constructor(comp, expOrFn, cb) {
-       
         this.comp = comp;
         this.cb = cb;
         this.deps = [];
