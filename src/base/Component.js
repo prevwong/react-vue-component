@@ -14,7 +14,7 @@ export default class ReactVComponent extends Component {
             writeable: false,
             value: function () {
                 this._state = {...this.state};
-                this.doUpdate();
+                this._reactivity();
             }
         });
 
@@ -25,7 +25,7 @@ export default class ReactVComponent extends Component {
             }
         });
     }
-    doUpdate() {
+    _reactivity() {
         observe(this._state);
         Object.keys(this.state).forEach(key => {
             proxy(this, '_state', key);

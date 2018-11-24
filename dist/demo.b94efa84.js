@@ -2600,7 +2600,8 @@ function (_Component) {
       writeable: false,
       value: function value() {
         this._state = _objectSpread({}, this.state);
-        this.doUpdate();
+
+        this._reactivity();
       }
     });
     Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentDidMount', {
@@ -2613,8 +2614,8 @@ function (_Component) {
   }
 
   _createClass(ReactVComponent, [{
-    key: "doUpdate",
-    value: function doUpdate() {
+    key: "_reactivity",
+    value: function _reactivity() {
       var _this2 = this;
 
       (0, _observer.observe)(this._state);
