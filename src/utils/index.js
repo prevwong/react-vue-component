@@ -1,6 +1,22 @@
 export function hasOwn(obj, key) {
     return hasOwnProperty.call(obj, key)
 }
+
+/**
+ * Strict object type check. Only returns true
+ * for plain JavaScript objects.
+ */
+export function isPlainObject(obj) {
+    return toString.call(obj) === '[object Object]'
+}
+
+
+export function isObject(obj) {
+    return obj !== null && typeof obj === 'object'
+}
+
+
+
 export function extend(to, _from) {
     for (const key in _from) {
         to[key] = _from[key]
@@ -58,3 +74,14 @@ export function uniqueObjectKeys(ob, target, ...args) {
 export function warn(msg) {
     console.error(`[v-react warn]: ${msg}`);
 }
+
+export function def(obj, key, val, enumerable) {
+    Object.defineProperty(obj, key, {
+        value: val,
+        enumerable: !!enumerable,
+        writable: true,
+        configurable: true
+    })
+}
+
+export const hasProto = '__proto__' in {}

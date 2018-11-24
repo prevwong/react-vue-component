@@ -111,14 +111,33 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.hasOwn = hasOwn;
+exports.isPlainObject = isPlainObject;
+exports.isObject = isObject;
 exports.extend = extend;
 exports.parsePath = parsePath;
 exports.remove = remove;
 exports.uniqueObjectKeys = uniqueObjectKeys;
 exports.warn = warn;
+exports.def = def;
+exports.hasProto = void 0;
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 function hasOwn(obj, key) {
   return hasOwnProperty.call(obj, key);
+}
+/**
+ * Strict object type check. Only returns true
+ * for plain JavaScript objects.
+ */
+
+
+function isPlainObject(obj) {
+  return toString.call(obj) === '[object Object]';
+}
+
+function isObject(obj) {
+  return obj !== null && _typeof(obj) === 'object';
 }
 
 function extend(to, _from) {
@@ -189,6 +208,18 @@ function uniqueObjectKeys(ob, target) {
 function warn(msg) {
   console.error("[v-react warn]: ".concat(msg));
 }
+
+function def(obj, key, val, enumerable) {
+  Object.defineProperty(obj, key, {
+    value: val,
+    enumerable: !!enumerable,
+    writable: true,
+    configurable: true
+  });
+}
+
+var hasProto = '__proto__' in {};
+exports.hasProto = hasProto;
 },{}],"src/reactivity/dep.js":[function(require,module,exports) {
 "use strict";
 
@@ -248,6 +279,7 @@ function () {
     key: "notify",
     value: function notify() {
       var subs = this.subs.slice();
+      console.log("notified...", subs);
       subs.forEach(function (sub) {
         return sub.update();
       }); // if (this.component.watch[this.key]) this.component.watch[this.key].call(comp);
@@ -272,7 +304,58 @@ function pushTarget(_target) {
 function popTarget() {
   Dep.target = targetStack.pop();
 }
-},{"./observer":"src/reactivity/observer.js","../utils":"src/utils/index.js"}],"src/reactivity/observer.js":[function(require,module,exports) {
+},{"./observer":"src/reactivity/observer.js","../utils":"src/utils/index.js"}],"src/reactivity/array.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.arrayMethods = void 0;
+
+var _utils = require("../utils");
+
+/*
+ * not type checking this file because flow doesn't play well with
+ * dynamically accessing methods on Array prototype
+ */
+var arrayProto = Array.prototype;
+var arrayMethods = Object.create(arrayProto);
+exports.arrayMethods = arrayMethods;
+var methodsToPatch = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+/**
+ * Intercept mutating methods and emit events
+ */
+
+methodsToPatch.forEach(function (method) {
+  // cache original method
+  var original = arrayProto[method];
+  var t = (0, _utils.def)(arrayMethods, method, function mutator() {
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    var result = original.apply(this, args);
+    var ob = this.__ob__;
+    var inserted;
+
+    switch (method) {
+      case 'push':
+      case 'unshift':
+        inserted = args;
+        break;
+
+      case 'splice':
+        inserted = args.slice(2);
+        break;
+    }
+
+    if (inserted) ob.observeArray(inserted); // notify change
+
+    ob.dep.notify();
+    return result;
+  }); // console.log(arrayMethods);
+});
+},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -284,6 +367,8 @@ exports.observe = exports.Observer = exports.sharedPropertyDefinition = void 0;
 var _dep = _interopRequireDefault(require("./dep"));
 
 var _utils = require("../utils");
+
+var _array = require("./array");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -336,12 +421,21 @@ function defineReactive(obj, key, proto) {
   var dep = new _dep.default();
   var val = obj[key]; // proxy(comp, 'state', key);
 
+  var childOb = observe(val);
   var object = Object.defineProperty(proto ? Object.getPrototypeOf(obj) : obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter() {
       if (_dep.default.target) {
         dep.depend();
+
+        if (childOb) {
+          childOb.dep.depend();
+
+          if (Array.isArray(val)) {
+            dependArray(val);
+          }
+        }
       }
 
       return val;
@@ -354,6 +448,44 @@ function defineReactive(obj, key, proto) {
   return object;
 }
 
+function dependArray(value) {
+  for (var e, i = 0, l = value.length; i < l; i++) {
+    e = value[i];
+    e && e.__ob__ && e.__ob__.dep.depend();
+
+    if (Array.isArray(e)) {
+      dependArray(e);
+    }
+  }
+}
+/**
+ * Augment an target Object or Array by intercepting
+ * the prototype chain using __proto__
+ */
+
+
+function protoAugment(comp, target, src) {
+  /* eslint-disable no-proto */
+  src.__ob__ = comp;
+  target.__proto__ = src;
+  console.log("target", target);
+  /* eslint-enable no-proto */
+}
+/**
+ * Augment an target Object or Array by defining
+ * hidden properties.
+ */
+
+/* istanbul ignore next */
+
+
+function copyAugment(target, src, keys) {
+  for (var i = 0, l = keys.length; i < l; i++) {
+    var key = keys[i];
+    (0, _utils.def)(target, key, src[key]);
+  }
+}
+
 var Observer =
 /*#__PURE__*/
 function () {
@@ -364,7 +496,20 @@ function () {
     this.value = value;
     this.dep = new _dep.default();
     this.compCount = 0;
-    this.walk(value);
+    this.__ob__ = this;
+    console.log("array is ara", value, Array.isArray(value));
+
+    if (Array.isArray(value)) {
+      if (_utils.hasProto) {
+        protoAugment(this, value, _array.arrayMethods);
+      } else {
+        copyAugment(value, _array.arrayMethods, arrayKeys);
+      }
+
+      this.observeArray(value);
+    } else {
+      this.walk(value);
+    }
   }
 
   _createClass(Observer, [{
@@ -376,6 +521,17 @@ function () {
         defineReactive(obj, keys[i], this.proto);
       }
     }
+    /**
+    * Observe a list of Array items.
+    */
+
+  }, {
+    key: "observeArray",
+    value: function observeArray(items) {
+      for (var i = 0, l = items.length; i < l; i++) {
+        observe(items[i]);
+      }
+    }
   }]);
 
   return Observer;
@@ -383,13 +539,24 @@ function () {
 
 exports.Observer = Observer;
 
-var observe = function observe(value, proto) {
-  var ob = new Observer(value, proto);
+var observe = function observe(value, asRootData) {
+  var ob;
+
+  if ((0, _utils.hasOwn)(value, '__ob__') && value.__ob__ instanceof Observer) {
+    ob = value.__ob__;
+  } else if (Array.isArray(value) || (0, _utils.isPlainObject)(value)) {
+    ob = new Observer(value);
+  }
+
+  if (asRootData && ob) {
+    ob.vmCount++;
+  }
+
   return ob;
 };
 
 exports.observe = observe;
-},{"./dep":"src/reactivity/dep.js","../utils":"src/utils/index.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
+},{"./dep":"src/reactivity/dep.js","../utils":"src/utils/index.js","./array":"src/reactivity/array.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -2464,7 +2631,7 @@ if ("development" === 'production') {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.createWatcher = exports.default = void 0;
+exports.default = void 0;
 
 var _utils = require("../utils");
 
@@ -2534,7 +2701,7 @@ function () {
     value: function update() {
       var value = this.get();
 
-      if (value !== this.value) {
+      if (value !== this.value || (0, _utils.isObject)(value)) {
         var oldValue = this.value;
         this.value = value;
         this.cb.call(this.vm, value, oldValue);
@@ -2555,12 +2722,6 @@ function () {
 }();
 
 exports.default = Watcher;
-
-var createWatcher = function createWatcher(comp, key, cb) {
-  var watcher = new Watcher(comp, key, cb); // cb.call(comp, watcher.value);
-};
-
-exports.createWatcher = createWatcher;
 },{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.js"}],"src/base/Component.js":[function(require,module,exports) {
 "use strict";
 
@@ -2662,7 +2823,6 @@ function (_Component) {
         if (_typeof(computed) === "object") {
           get = computed.get;
           set = computed.set;
-          console.log("tryna set", set);
         }
 
         (0, _observer.proxy)(_this2, key, get, set);
@@ -2671,7 +2831,9 @@ function (_Component) {
         return (0, _observer.proxy)(_this2, key, 'methods');
       });
       Object.keys(this._state).forEach(function (key) {
-        (0, _watcher.createWatcher)(_this2, key, function (newValue, oldValue) {
+        new _watcher.default(_this2, key, function (newValue, oldValue) {
+          console.log("updated...");
+
           if (_this2.watch && _this2.watch[key]) {
             _this2.watch[key].call(_this2, newValue, oldValue);
           }
@@ -24647,7 +24809,8 @@ function (_ReactV$Component2) {
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "state", {
       illuminate: 2,
       times: 1,
-      status: "ready"
+      status: "ready",
+      arr: ["hi", "world"]
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "watch", {
@@ -24671,7 +24834,6 @@ function (_ReactV$Component2) {
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "computed", {
       calc: {
         get: function get() {
-          console.log("t", this);
           return this.illuminate * this.times;
         },
         set: function set(newVal) {
@@ -24689,32 +24851,22 @@ function (_ReactV$Component2) {
       var _this4 = this;
 
       setTimeout(function () {
-        _this4.status = "mounted!";
+        _this4.arr.push("whut");
       }, 1000);
-      setTimeout(function () {
-        _this4.times = 10;
-      }, 2000);
-      setTimeout(function () {
-        _this4.calc = 77;
-        console.log("changeD", _this4.calc);
-      }, 3000);
     }
   }, {
     key: "render",
     value: function render() {
-      var _this5 = this;
-
       var status = this.status,
           illuminate = this.illuminate,
           times = this.times,
-          calc = this.calc;
-      return _react.default.createElement("div", null, _react.default.createElement("h3", null, status), _react.default.createElement("p", null, illuminate, "*", times, "=", calc), _react.default.createElement(SubApp, {
-        link: status
-      }), _react.default.createElement("a", {
-        onClick: function onClick() {
-          return _this5.change();
-        }
-      }, "Click"));
+          calc = this.calc,
+          arr = this.arr;
+      return _react.default.createElement("div", null, arr.map(function (o, i) {
+        return _react.default.createElement("li", {
+          key: i
+        }, o);
+      }));
     }
   }]);
 

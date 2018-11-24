@@ -42,7 +42,6 @@ export default class ReactVComponent extends Component {
             if (typeof computed === "object") {
                 get = computed.get;
                 set = computed.set;
-                console.log("tryna set", set)
             }
             proxy(this, key, get, set)
         });
@@ -50,7 +49,8 @@ export default class ReactVComponent extends Component {
         uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
 
         Object.keys(this._state).forEach(key => {
-            createWatcher(this, key, (newValue, oldValue) => {
+            new Watcher(this, key, (newValue, oldValue) => {
+                console.log("updated...")
                 if (this.watch && this.watch[key]) {
                     this.watch[key].call(this, newValue, oldValue);
                 }

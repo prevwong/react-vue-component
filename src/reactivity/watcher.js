@@ -1,4 +1,4 @@
-import { parsePath } from "../utils";
+import { parsePath, isObject } from "../utils";
 import { pushTarget, popTarget } from "./dep";
 
 export default class Watcher {
@@ -41,9 +41,9 @@ export default class Watcher {
 
     update() {
         const value = this.get()
-        if ( value !== this.value ) {
+        if (value !== this.value || isObject(value) ) {
             const oldValue = this.value
-            this.value = value
+            this.value = value;
             this.cb.call(this.vm, value, oldValue)
         }
     }
@@ -54,9 +54,4 @@ export default class Watcher {
             this.deps[i].depend()
         }
     }
-}
-
-export const createWatcher = (comp, key, cb) => {
-    const watcher = new Watcher(comp, key, cb);
-    // cb.call(comp, watcher.value);
 }

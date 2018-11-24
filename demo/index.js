@@ -24,19 +24,12 @@ class App extends ReactV.Component {
         illuminate: 2,
         times: 1,
         status: "ready",
+        arr: ["hi", "world"]
     }
     mounted(){
-        setTimeout(() => {
-            this.status = "mounted!";
-        }, 1000);
-        setTimeout(() => {
-            this.times = 10;
-        }, 2000);
-        setTimeout(() => {
-            this.calc = 77;
-            console.log("changeD", this.calc)
-            
-        }, 3000);
+       setTimeout(() => {
+        this.arr.push("whut");
+       }, 1000);
     }
     watch = {
         status(val, old){
@@ -57,7 +50,6 @@ class App extends ReactV.Component {
     computed = {
         calc : {
             get() {
-                console.log("t", this)
                 return this.illuminate * this.times;
             },
             set(newVal) {
@@ -66,13 +58,12 @@ class App extends ReactV.Component {
         }
     }
     render(){
-        const { status, illuminate, times, calc} = this;
+        const { status, illuminate, times, calc, arr} = this;
         return (
             <div>
-                <h3>{status}</h3>
-                <p>{illuminate}*{times}={calc}</p>
-                <SubApp link={status}  />
-                <a onClick={() => this.change()}>Click</a>
+                {
+                    arr.map((o, i) => <li key={i}>{o}</li>)
+                }
             </div>
         )
     }
