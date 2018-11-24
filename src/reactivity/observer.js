@@ -55,14 +55,6 @@ function defineReactive(obj, key, proto) {
     return object;
 }
 
-export function walk(comp, cb) {
-    let obj = comp.state;
-    const keys = Object.keys(obj);
-    for (let i = 0; i < keys.length; i++) {
-        defineReactive(comp, cb, obj, keys[i], obj[keys[i]]);
-    }
-}
-
 
 export class Observer { 
     constructor(value, proto) {

@@ -279,7 +279,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.proxy = proxy;
-exports.walk = walk;
 exports.observe = exports.Observer = exports.sharedPropertyDefinition = void 0;
 
 var _dep = _interopRequireDefault(require("./dep"));
@@ -356,15 +355,6 @@ function defineReactive(obj, key, proto) {
     }
   });
   return object;
-}
-
-function walk(comp, cb) {
-  var obj = comp.state;
-  var keys = Object.keys(obj);
-
-  for (var i = 0; i < keys.length; i++) {
-    defineReactive(comp, cb, obj, keys[i], obj[keys[i]]);
-  }
 }
 
 var Observer =
