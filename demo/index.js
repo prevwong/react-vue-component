@@ -32,6 +32,11 @@ class App extends ReactV.Component {
         setTimeout(() => {
             this.times = 10;
         }, 2000);
+        setTimeout(() => {
+            this.calc = 77;
+            console.log("changeD", this.calc)
+            
+        }, 3000);
     }
     watch = {
         status(val, old){
@@ -50,8 +55,14 @@ class App extends ReactV.Component {
         }
     }
     computed = {
-        calc() {
-            return this.illuminate * this.times;
+        calc : {
+            get() {
+                console.log("t", this)
+                return this.illuminate * this.times;
+            },
+            set(newVal) {
+                this.illuminate = 10;
+            }
         }
     }
     render(){

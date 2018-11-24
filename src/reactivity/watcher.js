@@ -21,7 +21,7 @@ export default class Watcher {
         try {
             value = this.getter(comp, comp);
         } catch(e) {
-            console.error(`Error in getter`, this);
+            console.error(`Error in getter`, e);
         } finally {
             popTarget();
         }

@@ -43,9 +43,6 @@ function defineReactive(obj, key, proto) {
             return val;
         },
         set: function reactiveSetter(newVal) {
-            // if (comp.watch[key]) comp.watch[key].call(comp, newVal, val);
-            // val = newVal;
-            // cb(object, key, newVal);
             val = newVal;
             dep.notify();
         }

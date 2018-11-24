@@ -347,9 +347,6 @@ function defineReactive(obj, key, proto) {
       return val;
     },
     set: function reactiveSetter(newVal) {
-      // if (comp.watch[key]) comp.watch[key].call(comp, newVal, val);
-      // val = newVal;
-      // cb(object, key, newVal);
       val = newVal;
       dep.notify();
     }
@@ -2511,7 +2508,7 @@ function () {
       try {
         value = this.getter(comp, comp);
       } catch (e) {
-        console.error("Error in getter", this);
+        console.error("Error in getter", e);
       } finally {
         (0, _dep.popTarget)();
       }
@@ -2654,9 +2651,21 @@ function (_Component) {
       });
       (0, _observer.observe)(this._state);
       (0, _utils.uniqueObjectKeys)(this, "computed", 'props', 'state', function (key) {
-        var getter = _this2.computed[key];
+        var computed = _this2.computed[key];
+        var getter = typeof computed === "function" ? computed : computed.get;
+
+        var get = getter,
+            set = function set() {};
+
         new _watcher.default(_this2, getter);
-        (0, _observer.proxy)(_this2, key, getter, function () {});
+
+        if (_typeof(computed) === "object") {
+          get = computed.get;
+          set = computed.set;
+          console.log("tryna set", set);
+        }
+
+        (0, _observer.proxy)(_this2, key, get, set);
       });
       (0, _utils.uniqueObjectKeys)(this, "methods", 'props', 'state', 'computed', function (key) {
         return (0, _observer.proxy)(_this2, key, 'methods');
@@ -24660,8 +24669,14 @@ function (_ReactV$Component2) {
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "computed", {
-      calc: function calc() {
-        return this.illuminate * this.times;
+      calc: {
+        get: function get() {
+          console.log("t", this);
+          return this.illuminate * this.times;
+        },
+        set: function set(newVal) {
+          this.illuminate = 10;
+        }
       }
     });
 
@@ -24679,6 +24694,10 @@ function (_ReactV$Component2) {
       setTimeout(function () {
         _this4.times = 10;
       }, 2000);
+      setTimeout(function () {
+        _this4.calc = 77;
+        console.log("changeD", _this4.calc);
+      }, 3000);
     }
   }, {
     key: "render",

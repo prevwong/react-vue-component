@@ -32,9 +32,19 @@ export default class ReactVComponent extends Component {
         observe(this._state);
 
         uniqueObjectKeys(this, "computed", 'props', 'state', (key) => {
-            const getter = this.computed[key];
+            const computed = this.computed[key];
+            const getter = typeof computed === "function" ? computed : computed.get;
+            let get = getter,
+                set = () => {};
+
             new Watcher(this, getter);
-            proxy(this, key, getter, () => { })
+
+            if (typeof computed === "object") {
+                get = computed.get;
+                set = computed.set;
+                console.log("tryna set", set)
+            }
+            proxy(this, key, get, set)
         });
 
         uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
