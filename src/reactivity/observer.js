@@ -18,22 +18,28 @@ export function proxy(target, sourceKey, key) {
     Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
-function defineReactive(comp, cb, obj, key, val) {
+function defineReactive(obj, key, proto) {
     if (val !== null && typeof val === 'object') {
         walk(val);
     }
-    proxy(comp, 'state', key);
-    let object = Object.defineProperty(comp.state, key, {
+    const dep = new Dep();
+    let val = obj[key];
+    // proxy(comp, 'state', key);
+    let object = Object.defineProperty(proto ? Object.getPrototypeOf(obj) : obj, key, {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
+            if ( Dep.target ) {
+                dep.depend();
+            }
             return val;
         },
         set: function reactiveSetter(newVal) {
-            if (comp.watch[key]) comp.watch[key].call(comp, newVal, val);
+            // if (comp.watch[key]) comp.watch[key].call(comp, newVal, val);
+            // val = newVal;
+            // cb(object, key, newVal);
             val = newVal;
-            cb(object, key, newVal);
-            
+            dep.notify();
         }
     });
 
@@ -47,4 +53,26 @@ export function walk(comp, cb) {
     for (let i = 0; i < keys.length; i++) {
         defineReactive(comp, cb, obj, keys[i], obj[keys[i]]);
     }
+}
+
+
+export class Observer { 
+    constructor(value, proto) {
+        this.proto = proto;
+        this.value = value;
+        this.dep = new Dep();
+        this.compCount = 0;
+        this.walk(value);
+    }
+    walk(obj) {
+        const keys = Object.keys(obj);
+        for ( let i = 0; i < keys.length; i++ ) {
+            defineReactive(obj, keys[i], this.proto)
+        }
+    }
+}
+
+export const observe = (value, proto) => {
+    let ob = new Observer(value, proto);
+    return ob;
 }
