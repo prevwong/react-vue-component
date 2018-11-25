@@ -1,7 +1,8 @@
-import { walk, proxy, observe, sharedPropertyDefinition } from "../reactivity/observer";
 import React, {Component} from "react";
-import Watcher, { createWatcher } from "../reactivity/watcher";
-import { uniqueObjectKeys } from "../utils";
+import { proxy, uniqueObjectKeys } from "../utils";
+import { observe, set } from "../reactivity/observer";
+import Watcher from "../reactivity/watcher";
+// import { Watcher } from "../reactivity/watcher";
 
 export default class ReactVComponent extends Component {
     _state = {}
@@ -25,11 +26,25 @@ export default class ReactVComponent extends Component {
         });
     }
     _reactivity() {
+        console.log()
+        // new Watcher();
         uniqueObjectKeys(this, "state", "props", (key) => {
             this._state[key] = this.state[key];
             proxy(this, key, '_state');
         });
         observe(this._state);
+        // console.log("gonna watch")
+        Object.keys(this._state).forEach((key, i) => {
+            new Watcher(this, key, (newValue, oldValue) => {
+                console.log("updated")
+                if (this.watch && this.watch[key]) {
+                    this.watch[key].call(this, newValue, oldValue);
+                }
+                this.setState({
+                    key: this.state[key]
+                })
+            })
+        });
 
         uniqueObjectKeys(this, "computed", 'props', 'state', (key) => {
             const computed = this.computed[key];
@@ -46,19 +61,13 @@ export default class ReactVComponent extends Component {
             proxy(this, key, get, set)
         });
 
-        uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
+        // uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
 
-        Object.keys(this._state).forEach(key => {
-            new Watcher(this, key, (newValue, oldValue) => {
-                console.log("updated...")
-                if (this.watch && this.watch[key]) {
-                    this.watch[key].call(this, newValue, oldValue);
-                }
-                this.setState({
-                    key: this.state[key]
-                })
-            })
-        });
+        
     }
+    set(o, key, val) {
+        set(o, key, val);
+    }
+
     mounted() { }
 }

@@ -26,8 +26,8 @@ export default class Dep {
     }
 
     notify() {
+        console.log("notifying", this);
         const subs = this.subs.slice()
-        console.log("notified...", subs)
         subs.forEach(sub => sub.update());
         // if (this.component.watch[this.key]) this.component.watch[this.key].call(comp);
     }

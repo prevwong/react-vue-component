@@ -1,13 +1,17 @@
 import { parsePath, isObject } from "../utils";
 import { pushTarget, popTarget } from "./dep";
+import { traverse } from "./traverse";
 
+let id = 0;
 export default class Watcher {
     comp = null
     cb = () => {}
     constructor(comp, expOrFn, cb) {
+        this.id = id++;
+        this.expOrFn = expOrFn;
         this.comp = comp;
         this.cb = cb;
-        this.deps = [];
+        // this.deps = [];
         this.newDeps = [];
         this.depIds = new Set();
         this.newDepIds = new Set();
@@ -15,6 +19,7 @@ export default class Watcher {
         this.value = this.get();
     }
     get(){ 
+        console.log("watcher getting", this.id)
         let value;
         pushTarget(this);
         const comp = this.comp;
@@ -23,10 +28,15 @@ export default class Watcher {
         } catch(e) {
             console.error(`Error in getter`, e);
         } finally {
+            console.log("traversing now", this.newDeps)
+            traverse(value);
             popTarget();
+            // this.cleanupDeps()
         }
+       
         return value;
     }
+
 
     addDep(dep) {
         const id = dep.id;
@@ -49,9 +59,9 @@ export default class Watcher {
     }
 
     depend() {
-        let i = this.deps.length
-        while (i--) {
-            this.deps[i].depend()
-        }
+        // let i = this.deps.length
+        // while (i--) {
+        //     this.deps[i].depend()
+        // }
     }
 }

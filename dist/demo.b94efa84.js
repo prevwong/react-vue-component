@@ -104,459 +104,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   // Override the current require with this new one
   return newRequire;
-})({"src/utils/index.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.hasOwn = hasOwn;
-exports.isPlainObject = isPlainObject;
-exports.isObject = isObject;
-exports.extend = extend;
-exports.parsePath = parsePath;
-exports.remove = remove;
-exports.uniqueObjectKeys = uniqueObjectKeys;
-exports.warn = warn;
-exports.def = def;
-exports.hasProto = void 0;
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function hasOwn(obj, key) {
-  return hasOwnProperty.call(obj, key);
-}
-/**
- * Strict object type check. Only returns true
- * for plain JavaScript objects.
- */
-
-
-function isPlainObject(obj) {
-  return toString.call(obj) === '[object Object]';
-}
-
-function isObject(obj) {
-  return obj !== null && _typeof(obj) === 'object';
-}
-
-function extend(to, _from) {
-  for (var key in _from) {
-    to[key] = _from[key];
-  }
-
-  return to;
-}
-/**
- * Parse simple path.
- */
-
-
-var bailRE = /[^\w.$]/;
-
-function parsePath(path) {
-  if (bailRE.test(path)) {
-    return;
-  }
-
-  var segments = path.split('.');
-  return function (obj) {
-    for (var i = 0; i < segments.length; i++) {
-      if (!obj) return;
-      obj = obj[segments[i]];
-    }
-
-    return obj;
-  };
-}
-
-function remove(arr, item) {
-  if (arr.length) {
-    var index = arr.indexOf(item);
-
-    if (index > -1) {
-      return arr.splice(index, 1);
-    }
-  }
-}
-
-function uniqueObjectKeys(ob, target) {
-  var targetKeys = Object.keys(ob[target]);
-
-  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
-  }
-
-  var destination = args.slice(0, args.length - 1);
-  var cb = args[args.length - 1];
-
-  for (var i = 0; i < targetKeys.length; i++) {
-    var existsIn = false;
-    var key = targetKeys[i];
-
-    for (var j = 0; j < destination.length; j++) {
-      if (ob[destination[j]][key]) {
-        existsIn = destination[j];
-        break;
-      }
-    }
-
-    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
-  }
-}
-
-function warn(msg) {
-  console.error("[v-react warn]: ".concat(msg));
-}
-
-function def(obj, key, val, enumerable) {
-  Object.defineProperty(obj, key, {
-    value: val,
-    enumerable: !!enumerable,
-    writable: true,
-    configurable: true
-  });
-}
-
-var hasProto = '__proto__' in {};
-exports.hasProto = hasProto;
-},{}],"src/reactivity/dep.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.pushTarget = pushTarget;
-exports.popTarget = popTarget;
-exports.default = void 0;
-
-var _observer = require("./observer");
-
-var _utils = require("../utils");
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-var uid = 0;
-
-var Dep =
-/*#__PURE__*/
-function () {
-  function Dep() {
-    _classCallCheck(this, Dep);
-
-    _defineProperty(this, "id", void 0);
-
-    this.id = uid++;
-    this.subs = []; // this.component = comp;
-    // this.key = key;
-    // this.subs = new Set();
-  }
-
-  _createClass(Dep, [{
-    key: "addSub",
-    value: function addSub(sub) {
-      this.subs.push(sub);
-    }
-  }, {
-    key: "removeSub",
-    value: function removeSub(sub) {
-      (0, _utils.remove)(this.subs, sub);
-    }
-  }, {
-    key: "depend",
-    value: function depend() {
-      if (Dep.target) {
-        Dep.target.addDep(this);
-      }
-    }
-  }, {
-    key: "notify",
-    value: function notify() {
-      var subs = this.subs.slice();
-      console.log("notified...", subs);
-      subs.forEach(function (sub) {
-        return sub.update();
-      }); // if (this.component.watch[this.key]) this.component.watch[this.key].call(comp);
-    }
-  }]);
-
-  return Dep;
-}();
-
-exports.default = Dep;
-
-_defineProperty(Dep, "target", void 0);
-
-Dep.target = null;
-var targetStack = [];
-
-function pushTarget(_target) {
-  if (Dep.target) targetStack.push(Dep.target);
-  Dep.target = _target;
-}
-
-function popTarget() {
-  Dep.target = targetStack.pop();
-}
-},{"./observer":"src/reactivity/observer.js","../utils":"src/utils/index.js"}],"src/reactivity/array.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.arrayMethods = void 0;
-
-var _utils = require("../utils");
-
-/*
- * not type checking this file because flow doesn't play well with
- * dynamically accessing methods on Array prototype
- */
-var arrayProto = Array.prototype;
-var arrayMethods = Object.create(arrayProto);
-exports.arrayMethods = arrayMethods;
-var methodsToPatch = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
-/**
- * Intercept mutating methods and emit events
- */
-
-methodsToPatch.forEach(function (method) {
-  // cache original method
-  var original = arrayProto[method];
-  var t = (0, _utils.def)(arrayMethods, method, function mutator() {
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    var result = original.apply(this, args);
-    var ob = this.__ob__;
-    var inserted;
-
-    switch (method) {
-      case 'push':
-      case 'unshift':
-        inserted = args;
-        break;
-
-      case 'splice':
-        inserted = args.slice(2);
-        break;
-    }
-
-    if (inserted) ob.observeArray(inserted); // notify change
-
-    ob.dep.notify();
-    return result;
-  }); // console.log(arrayMethods);
-});
-},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.proxy = proxy;
-exports.observe = exports.Observer = exports.sharedPropertyDefinition = void 0;
-
-var _dep = _interopRequireDefault(require("./dep"));
-
-var _utils = require("../utils");
-
-var _array = require("./array");
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-var sharedPropertyDefinition = {
-  enumerable: true,
-  configurable: true,
-  get: function get() {},
-  set: function set() {}
-};
-exports.sharedPropertyDefinition = sharedPropertyDefinition;
-
-function proxy(target, key) {
-  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
-  }
-
-  var get, set;
-
-  if (args.length === 2) {
-    get = args[0];
-    set = args[1];
-  } else if (args.length === 1 && typeof args[0] === "string") {
-    get = function proxyGetter() {
-      return this[args[0]][key];
-    };
-
-    set = function proxySetter(val) {
-      this[args[0]][key] = val;
-    };
-  }
-
-  sharedPropertyDefinition.get = get;
-  sharedPropertyDefinition.set = set;
-  Object.defineProperty(target, key, sharedPropertyDefinition);
-}
-
-function defineReactive(obj, key, proto) {
-  if (val !== null && _typeof(val) === 'object') {
-    walk(val);
-  }
-
-  var dep = new _dep.default();
-  var val = obj[key]; // proxy(comp, 'state', key);
-
-  var childOb = observe(val);
-  var object = Object.defineProperty(proto ? Object.getPrototypeOf(obj) : obj, key, {
-    enumerable: true,
-    configurable: true,
-    get: function reactiveGetter() {
-      if (_dep.default.target) {
-        dep.depend();
-
-        if (childOb) {
-          childOb.dep.depend();
-
-          if (Array.isArray(val)) {
-            dependArray(val);
-          }
-        }
-      }
-
-      return val;
-    },
-    set: function reactiveSetter(newVal) {
-      val = newVal;
-      dep.notify();
-    }
-  });
-  return object;
-}
-
-function dependArray(value) {
-  for (var e, i = 0, l = value.length; i < l; i++) {
-    e = value[i];
-    e && e.__ob__ && e.__ob__.dep.depend();
-
-    if (Array.isArray(e)) {
-      dependArray(e);
-    }
-  }
-}
-/**
- * Augment an target Object or Array by intercepting
- * the prototype chain using __proto__
- */
-
-
-function protoAugment(comp, target, src) {
-  /* eslint-disable no-proto */
-  src.__ob__ = comp;
-  target.__proto__ = src;
-  console.log("target", target);
-  /* eslint-enable no-proto */
-}
-/**
- * Augment an target Object or Array by defining
- * hidden properties.
- */
-
-/* istanbul ignore next */
-
-
-function copyAugment(target, src, keys) {
-  for (var i = 0, l = keys.length; i < l; i++) {
-    var key = keys[i];
-    (0, _utils.def)(target, key, src[key]);
-  }
-}
-
-var Observer =
-/*#__PURE__*/
-function () {
-  function Observer(value, proto) {
-    _classCallCheck(this, Observer);
-
-    this.proto = proto;
-    this.value = value;
-    this.dep = new _dep.default();
-    this.compCount = 0;
-    this.__ob__ = this;
-    console.log("array is ara", value, Array.isArray(value));
-
-    if (Array.isArray(value)) {
-      if (_utils.hasProto) {
-        protoAugment(this, value, _array.arrayMethods);
-      } else {
-        copyAugment(value, _array.arrayMethods, arrayKeys);
-      }
-
-      this.observeArray(value);
-    } else {
-      this.walk(value);
-    }
-  }
-
-  _createClass(Observer, [{
-    key: "walk",
-    value: function walk(obj) {
-      var keys = Object.keys(obj);
-
-      for (var i = 0; i < keys.length; i++) {
-        defineReactive(obj, keys[i], this.proto);
-      }
-    }
-    /**
-    * Observe a list of Array items.
-    */
-
-  }, {
-    key: "observeArray",
-    value: function observeArray(items) {
-      for (var i = 0, l = items.length; i < l; i++) {
-        observe(items[i]);
-      }
-    }
-  }]);
-
-  return Observer;
-}();
-
-exports.Observer = Observer;
-
-var observe = function observe(value, asRootData) {
-  var ob;
-
-  if ((0, _utils.hasOwn)(value, '__ob__') && value.__ob__ instanceof Observer) {
-    ob = value.__ob__;
-  } else if (Array.isArray(value) || (0, _utils.isPlainObject)(value)) {
-    ob = new Observer(value);
-  }
-
-  if (asRootData && ob) {
-    ob.vmCount++;
-  }
-
-  return ob;
-};
-
-exports.observe = observe;
-},{"./dep":"src/reactivity/dep.js","../utils":"src/utils/index.js","./array":"src/reactivity/array.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
+})({"node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -2625,17 +2173,24 @@ if ("development" === 'production') {
 } else {
   module.exports = require('./cjs/react.development.js');
 }
-},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"src/reactivity/watcher.js":[function(require,module,exports) {
+},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"src/utils/index.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
-
-var _utils = require("../utils");
-
-var _dep = require("./dep");
+exports.hasOwn = hasOwn;
+exports.proxy = proxy;
+exports.isPlainObject = isPlainObject;
+exports.isObject = isObject;
+exports.extend = extend;
+exports.parsePath = parsePath;
+exports.remove = remove;
+exports.uniqueObjectKeys = uniqueObjectKeys;
+exports.warn = warn;
+exports.def = def;
+exports.isNative = isNative;
+exports._Set = exports.hasProto = exports.sharedPropertyDefinition = void 0;
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -2645,84 +2200,469 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-var Watcher =
-/*#__PURE__*/
-function () {
-  function Watcher(comp, expOrFn, cb) {
-    _classCallCheck(this, Watcher);
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
-    _defineProperty(this, "comp", null);
+function hasOwn(obj, key) {
+  return hasOwnProperty.call(obj, key);
+}
 
-    _defineProperty(this, "cb", function () {});
+var sharedPropertyDefinition = {
+  enumerable: true,
+  configurable: true,
+  get: function get() {},
+  set: function set() {}
+};
+exports.sharedPropertyDefinition = sharedPropertyDefinition;
 
-    this.comp = comp;
-    this.cb = cb;
-    this.deps = [];
-    this.newDeps = [];
-    this.depIds = new Set();
-    this.newDepIds = new Set();
-    this.getter = typeof expOrFn === "function" ? expOrFn : (0, _utils.parsePath)(expOrFn);
-    this.value = this.get();
+function proxy(target, key) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
   }
 
-  _createClass(Watcher, [{
-    key: "get",
-    value: function get() {
-      var value;
-      (0, _dep.pushTarget)(this);
-      var comp = this.comp;
+  var get, set;
 
-      try {
-        value = this.getter(comp, comp);
-      } catch (e) {
-        console.error("Error in getter", e);
-      } finally {
-        (0, _dep.popTarget)();
+  if (args.length === 2) {
+    get = args[0];
+    set = args[1];
+  } else if (args.length === 1 && typeof args[0] === "string") {
+    get = function proxyGetter() {
+      return this[args[0]][key];
+    };
+
+    set = function proxySetter(val) {
+      this[args[0]][key] = val;
+    };
+  }
+
+  sharedPropertyDefinition.get = get;
+  sharedPropertyDefinition.set = set;
+  Object.defineProperty(target, key, sharedPropertyDefinition);
+}
+/**
+ * Strict object type check. Only returns true
+ * for plain JavaScript objects.
+ */
+
+
+function isPlainObject(obj) {
+  return toString.call(obj) === '[object Object]';
+}
+
+function isObject(obj) {
+  return obj !== null && _typeof(obj) === 'object';
+}
+
+function extend(to, _from) {
+  for (var key in _from) {
+    to[key] = _from[key];
+  }
+
+  return to;
+}
+/**
+ * Parse simple path.
+ */
+
+
+var bailRE = /[^\w.$]/;
+
+function parsePath(path) {
+  if (bailRE.test(path)) {
+    return;
+  }
+
+  var segments = path.split('.');
+  return function (obj) {
+    for (var i = 0; i < segments.length; i++) {
+      if (!obj) return;
+      obj = obj[segments[i]];
+    }
+
+    return obj;
+  };
+}
+
+function remove(arr, item) {
+  if (arr.length) {
+    var index = arr.indexOf(item);
+
+    if (index > -1) {
+      return arr.splice(index, 1);
+    }
+  }
+}
+
+function uniqueObjectKeys(ob, target) {
+  var targetKeys = Object.keys(ob[target]);
+
+  for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+    args[_key2 - 2] = arguments[_key2];
+  }
+
+  var destination = args.slice(0, args.length - 1);
+  var cb = args[args.length - 1];
+
+  for (var i = 0; i < targetKeys.length; i++) {
+    var existsIn = false;
+    var key = targetKeys[i];
+
+    for (var j = 0; j < destination.length; j++) {
+      if (ob[destination[j]][key]) {
+        existsIn = destination[j];
+        break;
+      }
+    }
+
+    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
+  }
+}
+
+function warn(msg) {
+  console.error("[v-react warn]: ".concat(msg));
+}
+
+function def(obj, key, val, enumerable) {
+  Object.defineProperty(obj, key, {
+    value: val,
+    enumerable: !!enumerable,
+    writable: true,
+    configurable: true
+  });
+}
+
+var hasProto = '__proto__' in {};
+/* istanbul ignore next */
+
+exports.hasProto = hasProto;
+
+function isNative(Ctor) {
+  return typeof Ctor === 'function' && /native code/.test(Ctor.toString());
+}
+
+var _Set;
+/* istanbul ignore if */
+// $flow-disable-line
+
+
+exports._Set = _Set;
+
+if (typeof Set !== 'undefined' && isNative(Set)) {
+  // use native Set when available.
+  exports._Set = _Set = Set;
+} else {
+  // a non-standard Set polyfill that only works with primitive keys.
+  exports._Set = _Set =
+  /*#__PURE__*/
+  function () {
+    function Set() {
+      _classCallCheck(this, Set);
+
+      _defineProperty(this, "set", void 0);
+
+      this.set = Object.create(null);
+    }
+
+    _createClass(Set, [{
+      key: "has",
+      value: function has(key) {
+        return this.set[key] === true;
+      }
+    }, {
+      key: "add",
+      value: function add(key) {
+        this.set[key] = true;
+      }
+    }, {
+      key: "clear",
+      value: function clear() {
+        this.set = Object.create(null);
+      }
+    }]);
+
+    return Set;
+  }();
+}
+},{}],"src/reactivity/dep.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+var utils_1 = require("../utils");
+
+var id = 0;
+
+var Dep =
+/** @class */
+function () {
+  function Dep() {
+    this.subs = [];
+    this.id = id++;
+  }
+
+  Dep.prototype.addSub = function (sub) {
+    this.subs.push(sub);
+  };
+
+  Dep.prototype.removeSub = function (sub) {
+    utils_1.remove(this.subs, sub);
+  };
+
+  Dep.prototype.depend = function () {
+    if (Dep.target) {
+      Dep.target.addDep(this);
+    }
+  };
+
+  Dep.prototype.notify = function () {
+    for (var i = 0; i < this.subs.length; i++) {
+      this.subs[i].update();
+    }
+  };
+
+  Dep.target = null;
+  return Dep;
+}();
+
+exports["default"] = Dep;
+var targetStack = [];
+
+function pushTarget(target) {
+  if (Dep.target) targetStack.push(Dep.target);
+  Dep.target = target;
+}
+
+exports.pushTarget = pushTarget;
+
+function popTarget() {
+  targetStack.pop();
+}
+
+exports.popTarget = popTarget;
+},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var __assign = this && this.__assign || function () {
+  __assign = Object.assign || function (t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+
+      for (var p in s) {
+        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+      }
+    }
+
+    return t;
+  };
+
+  return __assign.apply(this, arguments);
+};
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+exports.__esModule = true;
+
+var utils_1 = require("../utils");
+
+var dep_1 = __importDefault(require("./dep"));
+
+var Observer =
+/** @class */
+function () {
+  function Observer(value) {
+    this.__ob__ = this;
+    this.value = null;
+    this.dep = new dep_1["default"]();
+    this.value = value;
+    this.walk();
+    Object.defineProperty(value, "__ob__", {
+      enumerable: false,
+      value: this
+    });
+  }
+
+  Observer.prototype.walk = function () {
+    var keys = Object.keys(this.value);
+
+    for (var i = 0; i < keys.length; i++) {
+      defineReactive(this.value, keys[i]);
+    }
+  };
+
+  return Observer;
+}();
+
+exports.Observer = Observer;
+
+function defineReactive(obj, key) {
+  var value = obj[key],
+      stripValue = _typeof(value) === "object" ? __assign({}, value) : value;
+  var dep = new dep_1["default"](); // const childOb
+
+  var childOb = observe(value);
+  return Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function reactiveGetter() {
+      if (dep_1["default"].target) {
+        dep.depend();
+
+        if (childOb) {
+          childOb.dep.depend();
+        }
       }
 
       return value;
+    },
+    set: function reactiveSetter(newValue) {
+      value = newValue;
+      dep.notify();
     }
-  }, {
-    key: "addDep",
-    value: function addDep(dep) {
-      var id = dep.id;
+  });
+}
 
-      if (!this.newDepIds.has(id)) {
-        this.newDepIds.add(id);
-        this.newDeps.push(dep);
+exports.defineReactive = defineReactive;
 
-        if (!this.depIds.has(id)) {
-          dep.addSub(this);
-        }
+function observe(value) {
+  if (value.hasOwnProperty("__ob__") || value instanceof Observer) {
+    return value.__ob__;
+  } else if (Array.isArray(value) || utils_1.isPlainObject(value)) {
+    return new Observer(value);
+  }
+}
+
+exports.observe = observe;
+
+function set(obj, key, value) {
+  var ob = obj.__ob__;
+  console.log(ob);
+}
+
+exports.set = set;
+},{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var __assign = this && this.__assign || function () {
+  __assign = Object.assign || function (t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+
+      for (var p in s) {
+        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
       }
     }
-  }, {
-    key: "update",
-    value: function update() {
-      var value = this.get();
 
-      if (value !== this.value || (0, _utils.isObject)(value)) {
-        var oldValue = this.value;
-        this.value = value;
-        this.cb.call(this.vm, value, oldValue);
-      }
-    }
-  }, {
-    key: "depend",
-    value: function depend() {
-      var i = this.deps.length;
+    return t;
+  };
 
-      while (i--) {
-        this.deps[i].depend();
-      }
+  return __assign.apply(this, arguments);
+};
+
+exports.__esModule = true;
+
+var dep_1 = require("../reactivity/dep"); // import { traverse } from "../reactivity_backup/traverse";
+
+
+var utils_1 = require("../utils");
+
+var Watcher =
+/** @class */
+function () {
+  function Watcher(comp, value, cb) {
+    if (cb === void 0) {
+      cb = function cb() {};
     }
-  }]);
+
+    this.comp = null;
+    this.deps = [];
+    this.depIds = new Set();
+
+    this.getter = function () {};
+
+    this.comp = comp;
+    this.cb = cb;
+    this.getter = typeof value === "function" ? value : this.parsePath(value);
+    this.value = this.get();
+    this.oldValue = this.stripGettersSetters();
+  }
+
+  Watcher.prototype.stripGettersSetters = function () {
+    return _typeof(this.value) === "object" ? __assign({}, this.value) : this.value;
+  };
+
+  Watcher.prototype.parsePath = function (path) {
+    var bailRE = /[^\w.$]/;
+
+    if (bailRE.test(path)) {
+      return;
+    }
+
+    var segments = path.split('.');
+    return function (obj) {
+      for (var i = 0; i < segments.length; i++) {
+        if (!obj) return;
+        obj = obj[segments[i]];
+      }
+
+      return obj;
+    };
+  };
+
+  Watcher.prototype.get = function () {
+    var value;
+    dep_1.pushTarget(this);
+
+    try {
+      value = this.getter.call(this.comp, this.comp);
+    } catch (e) {
+      console.error("Error in getter", e);
+    } finally {
+      traverse(value);
+      dep_1.popTarget();
+    }
+
+    return value;
+  };
+
+  Watcher.prototype.addDep = function (dep) {
+    var id = dep.id;
+
+    if (!this.depIds.has(id)) {
+      this.depIds.add(id);
+      this.deps.push(dep);
+      dep.addSub(this);
+    }
+  };
+
+  Watcher.prototype.update = function () {
+    var value = this.get();
+
+    if (value !== this.value || utils_1.isObject(value)) {
+      this.cb.call(this.comp, value, this.oldValue);
+      this.oldValue = this.stripGettersSetters();
+    }
+  };
 
   return Watcher;
 }();
 
-exports.default = Watcher;
-},{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.js"}],"src/base/Component.js":[function(require,module,exports) {
+exports["default"] = Watcher;
+
+var traverse = function traverse(obj) {
+  var keys = Object.keys(obj);
+
+  for (var i = 0; i < keys.length; i++) {
+    return obj[keys[i]];
+  }
+};
+},{"../reactivity/dep":"src/reactivity/dep.ts","../utils":"src/utils/index.js"}],"src/base/Component.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2730,13 +2670,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _observer = require("../reactivity/observer");
-
 var _react = _interopRequireWildcard(require("react"));
 
-var _watcher = _interopRequireWildcard(require("../reactivity/watcher"));
-
 var _utils = require("../utils");
+
+var _observer = require("../reactivity/observer");
+
+var _watcher = _interopRequireDefault(require("../reactivity/watcher"));
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -2760,6 +2702,7 @@ function _assertThisInitialized(self) { if (self === void 0) { throw new Referen
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+// import { Watcher } from "../reactivity/watcher";
 var ReactVComponent =
 /*#__PURE__*/
 function (_Component) {
@@ -2806,11 +2749,27 @@ function (_Component) {
     value: function _reactivity() {
       var _this2 = this;
 
+      console.log(); // new Watcher();
+
       (0, _utils.uniqueObjectKeys)(this, "state", "props", function (key) {
         _this2._state[key] = _this2.state[key];
-        (0, _observer.proxy)(_this2, key, '_state');
+        (0, _utils.proxy)(_this2, key, '_state');
       });
-      (0, _observer.observe)(this._state);
+      (0, _observer.observe)(this._state); // console.log("gonna watch")
+
+      Object.keys(this._state).forEach(function (key, i) {
+        new _watcher.default(_this2, key, function (newValue, oldValue) {
+          console.log("updated");
+
+          if (_this2.watch && _this2.watch[key]) {
+            _this2.watch[key].call(_this2, newValue, oldValue);
+          }
+
+          _this2.setState({
+            key: _this2.state[key]
+          });
+        });
+      });
       (0, _utils.uniqueObjectKeys)(this, "computed", 'props', 'state', function (key) {
         var computed = _this2.computed[key];
         var getter = typeof computed === "function" ? computed : computed.get;
@@ -2825,24 +2784,13 @@ function (_Component) {
           set = computed.set;
         }
 
-        (0, _observer.proxy)(_this2, key, get, set);
-      });
-      (0, _utils.uniqueObjectKeys)(this, "methods", 'props', 'state', 'computed', function (key) {
-        return (0, _observer.proxy)(_this2, key, 'methods');
-      });
-      Object.keys(this._state).forEach(function (key) {
-        new _watcher.default(_this2, key, function (newValue, oldValue) {
-          console.log("updated...");
-
-          if (_this2.watch && _this2.watch[key]) {
-            _this2.watch[key].call(_this2, newValue, oldValue);
-          }
-
-          _this2.setState({
-            key: _this2.state[key]
-          });
-        });
-      });
+        (0, _utils.proxy)(_this2, key, get, set);
+      }); // uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
+    }
+  }, {
+    key: "set",
+    value: function set(o, key, val) {
+      (0, _observer.set)(o, key, val);
     }
   }, {
     key: "mounted",
@@ -2853,7 +2801,7 @@ function (_Component) {
 }(_react.Component);
 
 exports.default = ReactVComponent;
-},{"../reactivity/observer":"src/reactivity/observer.js","react":"node_modules/react/index.js","../reactivity/watcher":"src/reactivity/watcher.js","../utils":"src/utils/index.js"}],"src/ReactV.js":[function(require,module,exports) {
+},{"react":"node_modules/react/index.js","../utils":"src/utils/index.js","../reactivity/observer":"src/reactivity/observer.ts","../reactivity/watcher":"src/reactivity/watcher.ts"}],"src/ReactV.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -24807,10 +24755,10 @@ function (_ReactV$Component2) {
     _this3 = _possibleConstructorReturn(this, (_getPrototypeOf3 = _getPrototypeOf(App)).call.apply(_getPrototypeOf3, [this].concat(args)));
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "state", {
-      illuminate: 2,
-      times: 1,
-      status: "ready",
-      arr: ["hi", "world"]
+      age: 16,
+      o: {
+        name: "hi"
+      }
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "watch", {
@@ -24821,6 +24769,9 @@ function (_ReactV$Component2) {
         if (val === 3) {
           this.status = "troix";
         }
+      },
+      o: function o(val, old) {
+        console.log(val.name, old.name);
       }
     });
 
@@ -24834,10 +24785,10 @@ function (_ReactV$Component2) {
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "computed", {
       calc: {
         get: function get() {
-          return this.illuminate * this.times;
+          return "Name:".concat(this.o.name, ", Age:").concat(this.age);
         },
         set: function set(newVal) {
-          this.illuminate = 10;
+          this.age = newVal;
         }
       }
     });
@@ -24851,22 +24802,25 @@ function (_ReactV$Component2) {
       var _this4 = this;
 
       setTimeout(function () {
-        _this4.arr.push("whut");
+        console.log("changed", _this4);
+        _this4.o.name = "proots";
+
+        _this4.set(_this4.o, "gender", "male");
       }, 1000);
     }
   }, {
     key: "render",
     value: function render() {
-      var status = this.status,
-          illuminate = this.illuminate,
-          times = this.times,
-          calc = this.calc,
-          arr = this.arr;
-      return _react.default.createElement("div", null, arr.map(function (o, i) {
-        return _react.default.createElement("li", {
-          key: i
-        }, o);
-      }));
+      var _this5 = this;
+
+      var o = this.o,
+          age = this.age,
+          calc = this.calc;
+      return _react.default.createElement("div", null, _react.default.createElement("p", null, age), Object.keys(this.o).map(function (key) {
+        return _react.default.createElement("p", {
+          key: key
+        }, key, " : ", _this5.o[key]);
+      }), _react.default.createElement("p", null, calc));
     }
   }]);
 
@@ -24901,7 +24855,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49451" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51844" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

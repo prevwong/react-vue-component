@@ -27,26 +27,67 @@ export function proxy(target, key, ...args) {
     Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
-function defineReactive(obj, key, proto) {
-    if (val !== null && typeof val === 'object') {
-        walk(val);
+
+export class Observer {
+    constructor(value) {
+        console.log("Crested observer", value);
+        this.value = value;
+        this.dep = new Dep();
+        this.compCount = 0;
+        this.__ob__ = this;
+        if (Array.isArray(value)) {
+            if (hasProto) {
+                protoAugment(this, value, arrayMethods)
+            } else {
+                copyAugment(value, arrayMethods, arrayKeys)
+            }
+            this.observeArray(value)
+        } else {
+            console.log("gonna walk")
+            this.walk(value);
+        }
+
     }
+    walk(obj) {
+        const keys = Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            console.log("walk index", i, obj);
+            defineReactive(obj, keys[i])
+        }
+    }
+    /**
+   * Observe a list of Array items.
+   */
+    observeArray(items) {
+        for (let i = 0, l = items.length; i < l; i++) {
+            observe(items[i])
+        }
+    }
+}
+
+export const observe = (value) => {
+    let ob;
+    if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+        ob = value.__ob__
+    } else if ((Array.isArray(value) || isPlainObject(value))) {
+        ob = new Observer(value);
+    }
+    return ob
+}
+
+function defineReactive(obj, key, proto) {
+    if (val !== null && typeof val === 'object') walk(val);
+    
     const dep = new Dep();
+    console.log("made dep", obj);
     let val = obj[key];
-    // proxy(comp, 'state', key);
-    let childOb = observe(val);
     let object = Object.defineProperty(proto ? Object.getPrototypeOf(obj) : obj, key, {
         enumerable: true,
         configurable: true,
         get: function reactiveGetter() {
+            console.log("getting", obj, key, Dep.target);
             if ( Dep.target ) {
                 dep.depend();
-                if (childOb) {
-                    childOb.dep.depend()
-                    if (Array.isArray(val)) {
-                        dependArray(val)
-                    }
-                }
             }
             return val;
         },
@@ -66,6 +107,7 @@ function dependArray(value) {
         e = value[i]
         e && e.__ob__ && e.__ob__.dep.depend()
         if (Array.isArray(e)) {
+            
             dependArray(e)
         }
     }
@@ -79,7 +121,6 @@ function protoAugment(comp, target, src) {
     /* eslint-disable no-proto */
     src.__ob__ = comp;
     target.__proto__ = src
-    console.log("target", target);
     /* eslint-enable no-proto */
 }
 
@@ -95,54 +136,22 @@ function copyAugment(target, src, keys) {
     }
 }
 
-
-
-export class Observer { 
-    constructor(value, proto) {
-        this.proto = proto;
-        this.value = value;
-        this.dep = new Dep();
-        this.compCount = 0;
-        this.__ob__ = this;
-        console.log("array is ara", value, Array.isArray(value))
-        if (Array.isArray(value) ) {
-            if (hasProto) {
-                protoAugment(this, value, arrayMethods)
-            } else {
-                copyAugment(value, arrayMethods, arrayKeys)
-            }
-            this.observeArray(value)
-        } else {
-            this.walk(value);
-        }
-        
+export function set(target, key, val) {
+    if (Array.isArray(target) && isValidArrayIndex(key)) {
+        target.length = Math.max(target.length, key)
+        target.splice(key, 1, val)
+        return val
     }
-    walk(obj) {
-        const keys = Object.keys(obj);
-        for ( let i = 0; i < keys.length; i++ ) {
-            defineReactive(obj, keys[i], this.proto)
-        }
+    if (key in target && !(key in Object.prototype)) {
+        target[key] = val
+        return val
     }
-    /**
-   * Observe a list of Array items.
-   */
-    observeArray(items) {
-        for (let i = 0, l = items.length; i < l; i++) {
-            observe(items[i])
-        }
+    const ob = (target).__ob__
+    if (!ob) {
+        target[key] = val
+        return val
     }
-}
-
-export const observe = (value, asRootData) => {
-    let ob;
-    if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
-        ob = value.__ob__
-    } else if ((Array.isArray(value) || isPlainObject(value))) {
-        ob = new Observer(value);
-    }
-
-    if (asRootData && ob) {
-        ob.vmCount++
-    }
-    return ob
+    defineReactive(ob.value, key, val)
+    ob.dep.notify()
+    return val
 }

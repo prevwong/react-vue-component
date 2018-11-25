@@ -2,6 +2,35 @@ export function hasOwn(obj, key) {
     return hasOwnProperty.call(obj, key)
 }
 
+
+
+export const sharedPropertyDefinition = {
+    enumerable: true,
+    configurable: true,
+    get: () => { },
+    set: () => { }
+}
+
+export function proxy(target, key, ...args) {
+    let get, set;
+    if (args.length === 2) {
+        get = args[0];
+        set = args[1];
+    } else if (args.length === 1 && typeof args[0] === "string") {
+        get = function proxyGetter() {
+            return this[args[0]][key]
+        }
+        set = function proxySetter(val) {
+            this[args[0]][key] = val
+        }
+    }
+    sharedPropertyDefinition.get = get;
+    sharedPropertyDefinition.set = set;
+    Object.defineProperty(target, key, sharedPropertyDefinition)
+}
+
+
+
 /**
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
@@ -85,3 +114,37 @@ export function def(obj, key, val, enumerable) {
 }
 
 export const hasProto = '__proto__' in {}
+
+/* istanbul ignore next */
+export function isNative(Ctor) {
+    return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
+}
+
+
+let _Set
+/* istanbul ignore if */ // $flow-disable-line
+if (typeof Set !== 'undefined' && isNative(Set)) {
+    // use native Set when available.
+    _Set = Set
+} else {
+    // a non-standard Set polyfill that only works with primitive keys.
+    _Set = class Set  {
+        set;
+        constructor() {
+            this.set = Object.create(null)
+        }
+        has(key) {
+            return this.set[key] === true
+        }
+        add(key) {
+            this.set[key] = true
+        }
+        clear() {
+            this.set = Object.create(null)
+        }
+    }
+}
+
+export {
+    _Set
+}
