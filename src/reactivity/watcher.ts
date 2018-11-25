@@ -1,6 +1,5 @@
-import Dep, { pushTarget, popTarget } from "../reactivity/dep";
+import Dep, { pushTarget, popTarget } from "./dep";
 import {Component} from "react";
-// import { traverse } from "../reactivity_backup/traverse";
 import { isObject } from "../utils";
 
 export default class Watcher {
@@ -18,10 +17,10 @@ export default class Watcher {
        this.value = this.get();
        this.oldValue = this.stripGettersSetters();
     }
-    stripGettersSetters(){
+    stripGettersSetters(): any {
         return typeof this.value === "object" ? {...this.value} : this.value;
     }
-    parsePath(path) {
+    parsePath(path): null | object {
         const bailRE = /[^\w.$]/
         if (bailRE.test(path)) {
             return
@@ -36,7 +35,7 @@ export default class Watcher {
             return obj
         }
     }
-    get(){
+    get(): any {
         let value : any;
         pushTarget(this);
         try {
@@ -50,7 +49,7 @@ export default class Watcher {
 
         return value;
     }
-    addDep(dep) {
+    addDep(dep: Dep): void {
         const {id} = dep;
         if ( !this.depIds.has(id) ) {
             this.depIds.add(id);
@@ -58,7 +57,7 @@ export default class Watcher {
             dep.addSub(this);
         }
     }
-    update() {
+    update(): void {
         const value = this.get();
         if ( value !== this.value || isObject(value) ) {
             this.cb.call(this.comp, value, this.oldValue);

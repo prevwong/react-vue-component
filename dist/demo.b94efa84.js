@@ -104,7 +104,448 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   // Override the current require with this new one
   return newRequire;
-})({"node_modules/object-assign/index.js":[function(require,module,exports) {
+})({"src/utils/index.js":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.proxy = proxy;
+exports.remove = remove;
+exports.uniqueObjectKeys = uniqueObjectKeys;
+exports.warn = exports.hasProto = exports.isObject = exports.isPlainObject = void 0;
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+function proxy(target, key) {
+  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  var get, set;
+
+  if (args.length === 2) {
+    get = args[0];
+    set = args[1];
+  } else if (args.length === 1 && typeof args[0] === "string") {
+    get = function proxyGetter() {
+      return this[args[0]][key];
+    };
+
+    set = function proxySetter(val) {
+      this[args[0]][key] = val;
+    };
+  }
+
+  Object.defineProperty(target, key, {
+    enumerable: true,
+    configurable: true,
+    get: get,
+    set: set
+  });
+}
+
+function remove(arr, item) {
+  if (arr.length) {
+    var index = arr.indexOf(item);
+
+    if (index > -1) {
+      return arr.splice(index, 1);
+    }
+  }
+}
+
+function uniqueObjectKeys(ob, target) {
+  var targetKeys = Object.keys(ob[target]);
+
+  for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+    args[_key2 - 2] = arguments[_key2];
+  }
+
+  var destination = args.slice(0, args.length - 1);
+  var cb = args[args.length - 1];
+
+  for (var i = 0; i < targetKeys.length; i++) {
+    var existsIn = false;
+    var key = targetKeys[i];
+
+    for (var j = 0; j < destination.length; j++) {
+      if (ob[destination[j]][key]) {
+        existsIn = destination[j];
+        break;
+      }
+    }
+
+    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
+  }
+}
+
+var isPlainObject = function isPlainObject(obj) {
+  return toString.call(obj) === '[object Object]';
+};
+
+exports.isPlainObject = isPlainObject;
+
+var isObject = function isObject(obj) {
+  return obj !== null && _typeof(obj) === 'object';
+};
+
+exports.isObject = isObject;
+var hasProto = '__proto__' in {};
+exports.hasProto = hasProto;
+
+var warn = function warn(msg) {
+  return console.error("[v-react warn]: ".concat(msg));
+};
+
+exports.warn = warn;
+},{}],"src/reactivity/dep.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+var utils_1 = require("../utils");
+
+var id = 0;
+
+var Dep =
+/** @class */
+function () {
+  function Dep() {
+    this.subs = [];
+    this.id = id++;
+  }
+
+  Dep.prototype.addSub = function (sub) {
+    this.subs.push(sub);
+  };
+
+  Dep.prototype.removeSub = function (sub) {
+    utils_1.remove(this.subs, sub);
+  };
+
+  Dep.prototype.depend = function () {
+    if (Dep.target) {
+      Dep.target.addDep(this);
+    }
+  };
+
+  Dep.prototype.notify = function () {
+    for (var i = 0; i < this.subs.length; i++) {
+      this.subs[i].update();
+    }
+  };
+
+  Dep.target = null;
+  return Dep;
+}();
+
+exports["default"] = Dep;
+var targetStack = [];
+
+function pushTarget(target) {
+  if (Dep.target) targetStack.push(Dep.target);
+  Dep.target = target;
+}
+
+exports.pushTarget = pushTarget;
+
+function popTarget() {
+  targetStack.pop();
+}
+
+exports.popTarget = popTarget;
+},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var __assign = this && this.__assign || function () {
+  __assign = Object.assign || function (t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+
+      for (var p in s) {
+        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+      }
+    }
+
+    return t;
+  };
+
+  return __assign.apply(this, arguments);
+};
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+exports.__esModule = true;
+
+var utils_1 = require("../utils");
+
+var dep_1 = __importDefault(require("./dep"));
+
+var Observer =
+/** @class */
+function () {
+  function Observer(value) {
+    this.__ob__ = this;
+    this.value = null;
+    this.dep = new dep_1["default"]();
+    this.value = value;
+    this.walk();
+    Object.defineProperty(value, "__ob__", {
+      enumerable: false,
+      value: this
+    });
+  }
+
+  Observer.prototype.walk = function () {
+    var keys = Object.keys(this.value);
+
+    for (var i = 0; i < keys.length; i++) {
+      defineReactive(this.value, keys[i]);
+    }
+  };
+
+  return Observer;
+}();
+
+exports.Observer = Observer;
+
+function defineReactive(obj, key) {
+  var value = obj[key],
+      stripValue = _typeof(value) === "object" ? __assign({}, value) : value;
+  var dep = new dep_1["default"](); // const childOb
+
+  var childOb = observe(value);
+  return Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function reactiveGetter() {
+      if (dep_1["default"].target) {
+        dep.depend();
+
+        if (childOb) {
+          childOb.dep.depend();
+        }
+      }
+
+      return value;
+    },
+    set: function reactiveSetter(newValue) {
+      value = newValue;
+      dep.notify();
+    }
+  });
+}
+
+exports.defineReactive = defineReactive;
+
+function observe(value) {
+  if (value.hasOwnProperty("__ob__") || value instanceof Observer) {
+    return value.__ob__;
+  } else if (Array.isArray(value) || utils_1.isPlainObject(value)) {
+    return new Observer(value);
+  }
+}
+
+exports.observe = observe;
+
+function set(obj, key, value) {
+  var ob = obj.__ob__;
+  console.log(ob);
+}
+
+exports.set = set;
+},{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var __assign = this && this.__assign || function () {
+  __assign = Object.assign || function (t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+      s = arguments[i];
+
+      for (var p in s) {
+        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+      }
+    }
+
+    return t;
+  };
+
+  return __assign.apply(this, arguments);
+};
+
+exports.__esModule = true;
+
+var dep_1 = require("./dep");
+
+var utils_1 = require("../utils");
+
+var Watcher =
+/** @class */
+function () {
+  function Watcher(comp, value, cb) {
+    if (cb === void 0) {
+      cb = function cb() {};
+    }
+
+    this.comp = null;
+    this.deps = [];
+    this.depIds = new Set();
+
+    this.getter = function () {};
+
+    this.comp = comp;
+    this.cb = cb;
+    this.getter = typeof value === "function" ? value : this.parsePath(value);
+    this.value = this.get();
+    this.oldValue = this.stripGettersSetters();
+  }
+
+  Watcher.prototype.stripGettersSetters = function () {
+    return _typeof(this.value) === "object" ? __assign({}, this.value) : this.value;
+  };
+
+  Watcher.prototype.parsePath = function (path) {
+    var bailRE = /[^\w.$]/;
+
+    if (bailRE.test(path)) {
+      return;
+    }
+
+    var segments = path.split('.');
+    return function (obj) {
+      for (var i = 0; i < segments.length; i++) {
+        if (!obj) return;
+        obj = obj[segments[i]];
+      }
+
+      return obj;
+    };
+  };
+
+  Watcher.prototype.get = function () {
+    var value;
+    dep_1.pushTarget(this);
+
+    try {
+      value = this.getter.call(this.comp, this.comp);
+    } catch (e) {
+      console.error("Error in getter", e);
+    } finally {
+      traverse(value);
+      dep_1.popTarget();
+    }
+
+    return value;
+  };
+
+  Watcher.prototype.addDep = function (dep) {
+    var id = dep.id;
+
+    if (!this.depIds.has(id)) {
+      this.depIds.add(id);
+      this.deps.push(dep);
+      dep.addSub(this);
+    }
+  };
+
+  Watcher.prototype.update = function () {
+    var value = this.get();
+
+    if (value !== this.value || utils_1.isObject(value)) {
+      this.cb.call(this.comp, value, this.oldValue);
+      this.oldValue = this.stripGettersSetters();
+    }
+  };
+
+  return Watcher;
+}();
+
+exports["default"] = Watcher;
+
+var traverse = function traverse(obj) {
+  var keys = Object.keys(obj);
+
+  for (var i = 0; i < keys.length; i++) {
+    return obj[keys[i]];
+  }
+};
+},{"./dep":"src/reactivity/dep.ts","../utils":"src/utils/index.js"}],"src/reactivity/index.ts":[function(require,module,exports) {
+"use strict";
+
+function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
+var __importDefault = this && this.__importDefault || function (mod) {
+  return mod && mod.__esModule ? mod : {
+    "default": mod
+  };
+};
+
+exports.__esModule = true;
+
+var observer_1 = require("./observer");
+
+var watcher_1 = __importDefault(require("./watcher"));
+
+var utils_1 = require("../utils");
+
+var utils_2 = require("../utils");
+
+exports.injectReactivity = function (comp) {
+  exports.initState(comp);
+  exports.initWatch(comp);
+  exports.initComputed(comp);
+};
+
+exports.initState = function (comp) {
+  utils_2.uniqueObjectKeys(comp, "state", ["props"], function (key) {
+    comp._state[key] = comp.state[key];
+    utils_1.proxy(comp, key, '_state');
+  });
+  observer_1.observe(comp._state);
+};
+
+exports.initWatch = function (comp) {
+  Object.keys(comp._state).forEach(function (key, i) {
+    new watcher_1["default"](comp, key, function (newValue, oldValue) {
+      if (comp.watch && comp.watch[key]) {
+        comp.watch[key].call(comp, newValue, oldValue);
+      }
+
+      comp.setState({
+        key: comp.state[key]
+      });
+    });
+  });
+};
+
+exports.initComputed = function (comp) {
+  utils_2.uniqueObjectKeys(comp, "computed", ['props', 'state'], function (key) {
+    var computed = comp.computed[key];
+    var getter = typeof computed === "function" ? computed : computed.get;
+
+    var get = getter,
+        set = function set() {};
+
+    new watcher_1["default"](comp, getter);
+
+    if (_typeof(computed) === "object") {
+      get = computed.get;
+      set = computed.set;
+    }
+
+    utils_1.proxy(comp, key, get, set);
+  });
+};
+},{"./observer":"src/reactivity/observer.ts","./watcher":"src/reactivity/watcher.ts","../utils":"src/utils/index.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -2173,291 +2614,107 @@ if ("development" === 'production') {
 } else {
   module.exports = require('./cjs/react.development.js');
 }
-},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"src/utils/index.js":[function(require,module,exports) {
+},{"./cjs/react.development.js":"node_modules/react/cjs/react.development.js"}],"src/types/VueIshComponent.ts":[function(require,module,exports) {
 "use strict";
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.hasOwn = hasOwn;
-exports.proxy = proxy;
-exports.isPlainObject = isPlainObject;
-exports.isObject = isObject;
-exports.extend = extend;
-exports.parsePath = parsePath;
-exports.remove = remove;
-exports.uniqueObjectKeys = uniqueObjectKeys;
-exports.warn = warn;
-exports.def = def;
-exports.isNative = isNative;
-exports._Set = exports.hasProto = exports.sharedPropertyDefinition = void 0;
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function hasOwn(obj, key) {
-  return hasOwnProperty.call(obj, key);
-}
-
-var sharedPropertyDefinition = {
-  enumerable: true,
-  configurable: true,
-  get: function get() {},
-  set: function set() {}
-};
-exports.sharedPropertyDefinition = sharedPropertyDefinition;
-
-function proxy(target, key) {
-  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
-  }
-
-  var get, set;
-
-  if (args.length === 2) {
-    get = args[0];
-    set = args[1];
-  } else if (args.length === 1 && typeof args[0] === "string") {
-    get = function proxyGetter() {
-      return this[args[0]][key];
+var __extends = this && this.__extends || function () {
+  var _extendStatics = function extendStatics(d, b) {
+    _extendStatics = Object.setPrototypeOf || {
+      __proto__: []
+    } instanceof Array && function (d, b) {
+      d.__proto__ = b;
+    } || function (d, b) {
+      for (var p in b) {
+        if (b.hasOwnProperty(p)) d[p] = b[p];
+      }
     };
 
-    set = function proxySetter(val) {
-      this[args[0]][key] = val;
-    };
-  }
-
-  sharedPropertyDefinition.get = get;
-  sharedPropertyDefinition.set = set;
-  Object.defineProperty(target, key, sharedPropertyDefinition);
-}
-/**
- * Strict object type check. Only returns true
- * for plain JavaScript objects.
- */
-
-
-function isPlainObject(obj) {
-  return toString.call(obj) === '[object Object]';
-}
-
-function isObject(obj) {
-  return obj !== null && _typeof(obj) === 'object';
-}
-
-function extend(to, _from) {
-  for (var key in _from) {
-    to[key] = _from[key];
-  }
-
-  return to;
-}
-/**
- * Parse simple path.
- */
-
-
-var bailRE = /[^\w.$]/;
-
-function parsePath(path) {
-  if (bailRE.test(path)) {
-    return;
-  }
-
-  var segments = path.split('.');
-  return function (obj) {
-    for (var i = 0; i < segments.length; i++) {
-      if (!obj) return;
-      obj = obj[segments[i]];
-    }
-
-    return obj;
+    return _extendStatics(d, b);
   };
-}
 
-function remove(arr, item) {
-  if (arr.length) {
-    var index = arr.indexOf(item);
+  return function (d, b) {
+    _extendStatics(d, b);
 
-    if (index > -1) {
-      return arr.splice(index, 1);
-    }
-  }
-}
-
-function uniqueObjectKeys(ob, target) {
-  var targetKeys = Object.keys(ob[target]);
-
-  for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-    args[_key2 - 2] = arguments[_key2];
-  }
-
-  var destination = args.slice(0, args.length - 1);
-  var cb = args[args.length - 1];
-
-  for (var i = 0; i < targetKeys.length; i++) {
-    var existsIn = false;
-    var key = targetKeys[i];
-
-    for (var j = 0; j < destination.length; j++) {
-      if (ob[destination[j]][key]) {
-        existsIn = destination[j];
-        break;
-      }
+    function __() {
+      this.constructor = d;
     }
 
-    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+}();
+
+var __importStar = this && this.__importStar || function (mod) {
+  if (mod && mod.__esModule) return mod;
+  var result = {};
+  if (mod != null) for (var k in mod) {
+    if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
   }
-}
-
-function warn(msg) {
-  console.error("[v-react warn]: ".concat(msg));
-}
-
-function def(obj, key, val, enumerable) {
-  Object.defineProperty(obj, key, {
-    value: val,
-    enumerable: !!enumerable,
-    writable: true,
-    configurable: true
-  });
-}
-
-var hasProto = '__proto__' in {};
-/* istanbul ignore next */
-
-exports.hasProto = hasProto;
-
-function isNative(Ctor) {
-  return typeof Ctor === 'function' && /native code/.test(Ctor.toString());
-}
-
-var _Set;
-/* istanbul ignore if */
-// $flow-disable-line
-
-
-exports._Set = _Set;
-
-if (typeof Set !== 'undefined' && isNative(Set)) {
-  // use native Set when available.
-  exports._Set = _Set = Set;
-} else {
-  // a non-standard Set polyfill that only works with primitive keys.
-  exports._Set = _Set =
-  /*#__PURE__*/
-  function () {
-    function Set() {
-      _classCallCheck(this, Set);
-
-      _defineProperty(this, "set", void 0);
-
-      this.set = Object.create(null);
-    }
-
-    _createClass(Set, [{
-      key: "has",
-      value: function has(key) {
-        return this.set[key] === true;
-      }
-    }, {
-      key: "add",
-      value: function add(key) {
-        this.set[key] = true;
-      }
-    }, {
-      key: "clear",
-      value: function clear() {
-        this.set = Object.create(null);
-      }
-    }]);
-
-    return Set;
-  }();
-}
-},{}],"src/reactivity/dep.ts":[function(require,module,exports) {
-"use strict";
+  result["default"] = mod;
+  return result;
+};
 
 exports.__esModule = true;
 
-var utils_1 = require("../utils");
+var React = __importStar(require("react"));
 
-var id = 0;
-
-var Dep =
+var VueIshComponent =
 /** @class */
-function () {
-  function Dep() {
-    this.subs = [];
-    this.id = id++;
+function (_super) {
+  __extends(VueIshComponent, _super);
+
+  function VueIshComponent() {
+    var _this = _super !== null && _super.apply(this, arguments) || this;
+
+    _this._state = {};
+    _this._watch = {};
+    _this.state = {};
+
+    _this.set = function () {};
+
+    _this.methods = {};
+    _this.computed = {};
+    _this.watch = {};
+    return _this;
   }
 
-  Dep.prototype.addSub = function (sub) {
-    this.subs.push(sub);
-  };
+  VueIshComponent.prototype.created = function () {};
 
-  Dep.prototype.removeSub = function (sub) {
-    utils_1.remove(this.subs, sub);
-  };
+  VueIshComponent.prototype.beforeMount = function () {};
 
-  Dep.prototype.depend = function () {
-    if (Dep.target) {
-      Dep.target.addDep(this);
-    }
-  };
+  VueIshComponent.prototype.mounted = function () {};
 
-  Dep.prototype.notify = function () {
-    for (var i = 0; i < this.subs.length; i++) {
-      this.subs[i].update();
-    }
-  };
+  return VueIshComponent;
+}(React.Component);
 
-  Dep.target = null;
-  return Dep;
-}();
-
-exports["default"] = Dep;
-var targetStack = [];
-
-function pushTarget(target) {
-  if (Dep.target) targetStack.push(Dep.target);
-  Dep.target = target;
-}
-
-exports.pushTarget = pushTarget;
-
-function popTarget() {
-  targetStack.pop();
-}
-
-exports.popTarget = popTarget;
-},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.ts":[function(require,module,exports) {
+exports["default"] = VueIshComponent;
+},{"react":"node_modules/react/index.js"}],"src/ReactV.ts":[function(require,module,exports) {
 "use strict";
 
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-var __assign = this && this.__assign || function () {
-  __assign = Object.assign || function (t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-      s = arguments[i];
-
-      for (var p in s) {
-        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+var __extends = this && this.__extends || function () {
+  var _extendStatics = function extendStatics(d, b) {
+    _extendStatics = Object.setPrototypeOf || {
+      __proto__: []
+    } instanceof Array && function (d, b) {
+      d.__proto__ = b;
+    } || function (d, b) {
+      for (var p in b) {
+        if (b.hasOwnProperty(p)) d[p] = b[p];
       }
-    }
+    };
 
-    return t;
+    return _extendStatics(d, b);
   };
 
-  return __assign.apply(this, arguments);
-};
+  return function (d, b) {
+    _extendStatics(d, b);
+
+    function __() {
+      this.constructor = d;
+    }
+
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+}();
 
 var __importDefault = this && this.__importDefault || function (mod) {
   return mod && mod.__esModule ? mod : {
@@ -2467,276 +2724,29 @@ var __importDefault = this && this.__importDefault || function (mod) {
 
 exports.__esModule = true;
 
-var utils_1 = require("../utils");
+var reactivity_1 = require("./reactivity");
 
-var dep_1 = __importDefault(require("./dep"));
+var VueIshComponent_1 = __importDefault(require("./types/VueIshComponent"));
 
-var Observer =
+var Component =
 /** @class */
-function () {
-  function Observer(value) {
-    this.__ob__ = this;
-    this.value = null;
-    this.dep = new dep_1["default"]();
-    this.value = value;
-    this.walk();
-    Object.defineProperty(value, "__ob__", {
-      enumerable: false,
-      value: this
-    });
-  }
+function (_super) {
+  __extends(Component, _super);
 
-  Observer.prototype.walk = function () {
-    var keys = Object.keys(this.value);
+  function Component(props) {
+    var _this = _super.call(this, props) || this;
 
-    for (var i = 0; i < keys.length; i++) {
-      defineReactive(this.value, keys[i]);
-    }
-  };
+    _this.created();
 
-  return Observer;
-}();
-
-exports.Observer = Observer;
-
-function defineReactive(obj, key) {
-  var value = obj[key],
-      stripValue = _typeof(value) === "object" ? __assign({}, value) : value;
-  var dep = new dep_1["default"](); // const childOb
-
-  var childOb = observe(value);
-  return Object.defineProperty(obj, key, {
-    enumerable: true,
-    configurable: true,
-    get: function reactiveGetter() {
-      if (dep_1["default"].target) {
-        dep.depend();
-
-        if (childOb) {
-          childOb.dep.depend();
-        }
-      }
-
-      return value;
-    },
-    set: function reactiveSetter(newValue) {
-      value = newValue;
-      dep.notify();
-    }
-  });
-}
-
-exports.defineReactive = defineReactive;
-
-function observe(value) {
-  if (value.hasOwnProperty("__ob__") || value instanceof Observer) {
-    return value.__ob__;
-  } else if (Array.isArray(value) || utils_1.isPlainObject(value)) {
-    return new Observer(value);
-  }
-}
-
-exports.observe = observe;
-
-function set(obj, key, value) {
-  var ob = obj.__ob__;
-  console.log(ob);
-}
-
-exports.set = set;
-},{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
-"use strict";
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-var __assign = this && this.__assign || function () {
-  __assign = Object.assign || function (t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-      s = arguments[i];
-
-      for (var p in s) {
-        if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
-      }
-    }
-
-    return t;
-  };
-
-  return __assign.apply(this, arguments);
-};
-
-exports.__esModule = true;
-
-var dep_1 = require("../reactivity/dep"); // import { traverse } from "../reactivity_backup/traverse";
-
-
-var utils_1 = require("../utils");
-
-var Watcher =
-/** @class */
-function () {
-  function Watcher(comp, value, cb) {
-    if (cb === void 0) {
-      cb = function cb() {};
-    }
-
-    this.comp = null;
-    this.deps = [];
-    this.depIds = new Set();
-
-    this.getter = function () {};
-
-    this.comp = comp;
-    this.cb = cb;
-    this.getter = typeof value === "function" ? value : this.parsePath(value);
-    this.value = this.get();
-    this.oldValue = this.stripGettersSetters();
-  }
-
-  Watcher.prototype.stripGettersSetters = function () {
-    return _typeof(this.value) === "object" ? __assign({}, this.value) : this.value;
-  };
-
-  Watcher.prototype.parsePath = function (path) {
-    var bailRE = /[^\w.$]/;
-
-    if (bailRE.test(path)) {
-      return;
-    }
-
-    var segments = path.split('.');
-    return function (obj) {
-      for (var i = 0; i < segments.length; i++) {
-        if (!obj) return;
-        obj = obj[segments[i]];
-      }
-
-      return obj;
-    };
-  };
-
-  Watcher.prototype.get = function () {
-    var value;
-    dep_1.pushTarget(this);
-
-    try {
-      value = this.getter.call(this.comp, this.comp);
-    } catch (e) {
-      console.error("Error in getter", e);
-    } finally {
-      traverse(value);
-      dep_1.popTarget();
-    }
-
-    return value;
-  };
-
-  Watcher.prototype.addDep = function (dep) {
-    var id = dep.id;
-
-    if (!this.depIds.has(id)) {
-      this.depIds.add(id);
-      this.deps.push(dep);
-      dep.addSub(this);
-    }
-  };
-
-  Watcher.prototype.update = function () {
-    var value = this.get();
-
-    if (value !== this.value || utils_1.isObject(value)) {
-      this.cb.call(this.comp, value, this.oldValue);
-      this.oldValue = this.stripGettersSetters();
-    }
-  };
-
-  return Watcher;
-}();
-
-exports["default"] = Watcher;
-
-var traverse = function traverse(obj) {
-  var keys = Object.keys(obj);
-
-  for (var i = 0; i < keys.length; i++) {
-    return obj[keys[i]];
-  }
-};
-},{"../reactivity/dep":"src/reactivity/dep.ts","../utils":"src/utils/index.js"}],"src/base/Component.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _react = _interopRequireWildcard(require("react"));
-
-var _utils = require("../utils");
-
-var _observer = require("../reactivity/observer");
-
-var _watcher = _interopRequireDefault(require("../reactivity/watcher"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
-function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
-
-function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
-
-function _possibleConstructorReturn(self, call) { if (call && (_typeof(call) === "object" || typeof call === "function")) { return call; } return _assertThisInitialized(self); }
-
-function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function"); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, writable: true, configurable: true } }); if (superClass) _setPrototypeOf(subClass, superClass); }
-
-function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) { o.__proto__ = p; return o; }; return _setPrototypeOf(o, p); }
-
-function _assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-// import { Watcher } from "../reactivity/watcher";
-var ReactVComponent =
-/*#__PURE__*/
-function (_Component) {
-  _inherits(ReactVComponent, _Component);
-
-  function ReactVComponent() {
-    var _getPrototypeOf2;
-
-    var _this;
-
-    _classCallCheck(this, ReactVComponent);
-
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    _this = _possibleConstructorReturn(this, (_getPrototypeOf2 = _getPrototypeOf(ReactVComponent)).call.apply(_getPrototypeOf2, [this].concat(args)));
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "_state", {});
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "methods", {});
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "computed", {});
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), "_watch", {});
-
-    Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentWillMount', {
-      writeable: false,
+    Object.defineProperty(_this, 'componentWillMount', {
+      writable: false,
       value: function value() {
-        this._reactivity();
+        this.beforeMount();
+        reactivity_1.injectReactivity(this);
       }
     });
-    Object.defineProperty(_assertThisInitialized(_assertThisInitialized(_this)), 'componentDidMount', {
-      writeable: false,
+    Object.defineProperty(_this, 'componentDidMount', {
+      writable: false,
       value: function value() {
         this.mounted();
       }
@@ -2744,80 +2754,13 @@ function (_Component) {
     return _this;
   }
 
-  _createClass(ReactVComponent, [{
-    key: "_reactivity",
-    value: function _reactivity() {
-      var _this2 = this;
+  return Component;
+}(VueIshComponent_1["default"]);
 
-      console.log(); // new Watcher();
-
-      (0, _utils.uniqueObjectKeys)(this, "state", "props", function (key) {
-        _this2._state[key] = _this2.state[key];
-        (0, _utils.proxy)(_this2, key, '_state');
-      });
-      (0, _observer.observe)(this._state); // console.log("gonna watch")
-
-      Object.keys(this._state).forEach(function (key, i) {
-        new _watcher.default(_this2, key, function (newValue, oldValue) {
-          console.log("updated");
-
-          if (_this2.watch && _this2.watch[key]) {
-            _this2.watch[key].call(_this2, newValue, oldValue);
-          }
-
-          _this2.setState({
-            key: _this2.state[key]
-          });
-        });
-      });
-      (0, _utils.uniqueObjectKeys)(this, "computed", 'props', 'state', function (key) {
-        var computed = _this2.computed[key];
-        var getter = typeof computed === "function" ? computed : computed.get;
-
-        var get = getter,
-            set = function set() {};
-
-        new _watcher.default(_this2, getter);
-
-        if (_typeof(computed) === "object") {
-          get = computed.get;
-          set = computed.set;
-        }
-
-        (0, _utils.proxy)(_this2, key, get, set);
-      }); // uniqueObjectKeys(this, "methods", 'props', 'state', 'computed', (key) => proxy(this, key, 'methods'));
-    }
-  }, {
-    key: "set",
-    value: function set(o, key, val) {
-      (0, _observer.set)(o, key, val);
-    }
-  }, {
-    key: "mounted",
-    value: function mounted() {}
-  }]);
-
-  return ReactVComponent;
-}(_react.Component);
-
-exports.default = ReactVComponent;
-},{"react":"node_modules/react/index.js","../utils":"src/utils/index.js","../reactivity/observer":"src/reactivity/observer.ts","../reactivity/watcher":"src/reactivity/watcher.ts"}],"src/ReactV.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-
-var _Component = _interopRequireDefault(require("./base/Component"));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var _default = {
-  Component: _Component.default
+exports["default"] = {
+  Component: Component
 };
-exports.default = _default;
-},{"./base/Component":"src/base/Component.js"}],"node_modules/scheduler/cjs/scheduler.development.js":[function(require,module,exports) {
+},{"./reactivity":"src/reactivity/index.ts","./types/VueIshComponent":"src/types/VueIshComponent.ts"}],"node_modules/scheduler/cjs/scheduler.development.js":[function(require,module,exports) {
 /** @license React v16.6.1
  * scheduler.development.js
  *
@@ -24662,7 +24605,7 @@ if ("development" === 'production') {
 },{"./cjs/react-dom.development.js":"node_modules/react-dom/cjs/react-dom.development.js"}],"demo/index.js":[function(require,module,exports) {
 "use strict";
 
-var _ReactV = _interopRequireDefault(require("../src/ReactV"));
+var _ReactV = _interopRequireDefault(require("../src/ReactV.ts"));
 
 var _react = _interopRequireDefault(require("react"));
 
@@ -24762,34 +24705,8 @@ function (_ReactV$Component2) {
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "watch", {
-      status: function status(val, old) {
-        console.log("status updated....", val, old);
-      },
-      illuminate: function illuminate(val, old) {
-        if (val === 3) {
-          this.status = "troix";
-        }
-      },
-      o: function o(val, old) {
-        console.log(val.name, old.name);
-      }
-    });
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "methods", {
-      change: function change() {
-        this.times = this.times + 1;
-        this.illuminate = this.illuminate + 1;
-      }
-    });
-
-    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "computed", {
-      calc: {
-        get: function get() {
-          return "Name:".concat(this.o.name, ", Age:").concat(this.age);
-        },
-        set: function set(newVal) {
-          this.age = newVal;
-        }
+      o: function o(v, old) {
+        console.log("object changed", v, old);
       }
     });
 
@@ -24801,11 +24718,10 @@ function (_ReactV$Component2) {
     value: function mounted() {
       var _this4 = this;
 
+      console.log("mounted");
       setTimeout(function () {
         console.log("changed", _this4);
-        _this4.o.name = "proots";
-
-        _this4.set(_this4.o, "gender", "male");
+        _this4.o.name = "proots"; // this.set(this.o, "gender", "male");
       }, 1000);
     }
   }, {
@@ -24828,7 +24744,7 @@ function (_ReactV$Component2) {
 }(_ReactV.default.Component);
 
 _reactDom.default.render(_react.default.createElement(App, null), document.getElementById("main"));
-},{"../src/ReactV":"src/ReactV.js","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"../src/ReactV.ts":"src/ReactV.ts","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -24855,7 +24771,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51844" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54668" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);
@@ -24997,5 +24913,5 @@ function hmrAccept(bundle, id) {
     return hmrAccept(global.parcelRequire, id);
   });
 }
-},{}]},{},["../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js","demo/index.js"], null)
+},{}]},{},["../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js","demo/index.js"], null)
 //# sourceMappingURL=/demo.b94efa84.map

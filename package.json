@@ -26,6 +26,8 @@
   },
   "homepage": "https://github.com/prevwong/reactx#readme",
   "dependencies": {
+    "@types/react": "^16.7.7",
+    "@types/react-dom": "^16.0.10",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "vue": "^2.5.17"

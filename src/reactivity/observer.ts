@@ -1,11 +1,8 @@
-import { isObject, isPlainObject } from "../utils";
+import { isPlainObject } from "../utils";
 import Dep from "./dep";
+import InspectedObject from "../types/InspectedObject";
 
-interface ObservedObject {
-    __ob__?
-}
-
-export class Observer implements ObservedObject {
+export class Observer  {
     __ob__: Observer = this
     value: ObjectConstructor = null
     dep: Dep = new Dep()
@@ -61,7 +58,7 @@ export function observe(value: any) : Observer {
 
 
 
-export function set(obj: ObservedObject, key: string, value: any): void {
+export function set(obj: InspectedObject, key: string, value: any): void {
     const ob = obj.__ob__;
 
     console.log(ob);

@@ -1,4 +1,4 @@
-import ReactV from "../src/ReactV";
+import ReactV from "../src/ReactV.ts";
 import React from "react";
 import ReactDOM from "react-dom"
 
@@ -24,41 +24,18 @@ class App extends ReactV.Component {
        age: 16,
        o : { name: "hi"}
     }
-    mounted(){
+    watch = {
+        o(v, old ){
+            console.log("object changed", v, old)
+        }
+    }
+    mounted() {
+        console.log("mounted")
         setTimeout(() => {
             console.log("changed", this)
             this.o.name = "proots"
-            this.set(this.o, "gender", "male");
+            // this.set(this.o, "gender", "male");
         }, 1000);
-    }
-    watch = {
-        status(val, old){
-            console.log("status updated....", val, old);
-        },
-        illuminate(val, old) {
-            if ( val === 3 ) {
-                this.status = "troix";
-            } 
-        },
-        o(val, old) {
-            console.log(val.name, old.name)
-        }
-    }
-    methods = {
-        change() {
-            this.times = this.times + 1;
-            this.illuminate = this.illuminate + 1;
-        }
-    }
-    computed = {
-        calc : {
-            get() {
-                return `Name:${this.o.name}, Age:${this.age}`
-            },
-            set(newVal) {
-                this.age = newVal;
-            }
-        }
     }
     render(){
         const { o, age, calc} = this;
