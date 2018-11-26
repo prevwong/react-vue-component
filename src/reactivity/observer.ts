@@ -1,15 +1,24 @@
 import { isPlainObject } from "../utils";
 import Dep from "./dep";
 import InspectedObject from "../types/InspectedObject";
+import { arrayMethods } from "./array";
+
+interface ArrObject {
+    __proto__? : any
+}
 
 export class Observer  {
     __ob__: Observer = this
-    value: ObjectConstructor = null
+    value: object = null
     dep: Dep = new Dep()
-    constructor(value) {
-        
+    constructor(value: any) {
         this.value = value;
-        this.walk();
+        if ( Array.isArray(value) ) {
+            (value as ArrObject).__proto__ = arrayMethods;
+            this.observeArray(value);
+        } else if ( typeof value == "object" ) {
+            this.walk();
+        }
         Object.defineProperty(value, "__ob__", {
             enumerable: false,
             value: this
@@ -21,7 +30,24 @@ export class Observer  {
             defineReactive(this.value, keys[i]);
         }
     }
+    observeArray(arr: Array<any>){
+        arr.forEach(item => {
+            observe(item);
+        })
+    }
 }
+
+function dependArray(value) {
+    for (let e, i = 0, l = value.length; i < l; i++) {
+        e = value[i]
+        e && e.__ob__ && e.__ob__.dep.depend()
+        if (Array.isArray(e)) {
+
+            dependArray(e)
+        }
+    }
+}
+
 
 export function defineReactive(obj: object, key: string): object {
     let value = obj[key],
@@ -37,6 +63,7 @@ export function defineReactive(obj: object, key: string): object {
                 dep.depend();
                 if (childOb) {
                     childOb.dep.depend();
+                    dependArray(value);
                 }
             }
             return value;

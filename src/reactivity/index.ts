@@ -5,7 +5,6 @@ import {proxy} from "../utils";
 import { uniqueObjectKeys} from "../utils";
 import VueIshComponent from "../types/VueIshComponent";
 
-
 export const injectReactivity = (comp: VueIshComponent): void => {
     initState(comp);
     initWatch(comp);

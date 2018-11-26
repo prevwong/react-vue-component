@@ -1,4 +1,11 @@
-import { def } from "../utils";
+export function def(obj: Object, key: string, val: any, enumerable?: boolean) {
+    Object.defineProperty(obj, key, {
+        value: val,
+        enumerable: !!enumerable,
+        writable: true,
+        configurable: true
+    })
+}
 
 /*
  * not type checking this file because flow doesn't play well with
@@ -24,26 +31,13 @@ const methodsToPatch = [
  */
 methodsToPatch.forEach(function (method) {
     // cache original method
-    
+
     const original = arrayProto[method]
     const t = def(arrayMethods, method, function mutator(...args) {
         const result = original.apply(this, args)
-        const ob = this.__ob__
-        let inserted
-        switch (method) {
-            case 'push':
-            case 'unshift':
-                console.log("pushing", result)
-                inserted = args
-                break
-            case 'splice':
-                inserted = args.slice(2)
-                break
-        }
-        if (inserted) ob.observeArray(inserted)
-        // notify change
+        const ob = this.__ob__;
         ob.dep.notify()
-        return result
+        return result;
     });
 
     // console.log(arrayMethods);

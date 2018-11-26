@@ -104,22 +104,18 @@ parcelRequire = (function (modules, cache, entry, globalName) {
 
   // Override the current require with this new one
   return newRequire;
-})({"src/utils/index.js":[function(require,module,exports) {
+})({"src/utils/index.ts":[function(require,module,exports) {
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.proxy = proxy;
-exports.remove = remove;
-exports.uniqueObjectKeys = uniqueObjectKeys;
-exports.warn = exports.hasProto = exports.isObject = exports.isPlainObject = void 0;
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
+exports.__esModule = true;
+
 function proxy(target, key) {
-  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
+  var args = [];
+
+  for (var _i = 2; _i < arguments.length; _i++) {
+    args[_i - 2] = arguments[_i];
   }
 
   var get, set;
@@ -137,7 +133,7 @@ function proxy(target, key) {
     };
   }
 
-  Object.defineProperty(target, key, {
+  return Object.defineProperty(target, key, {
     enumerable: true,
     configurable: true,
     get: get,
@@ -145,60 +141,50 @@ function proxy(target, key) {
   });
 }
 
+exports.proxy = proxy;
+
 function remove(arr, item) {
   if (arr.length) {
     var index = arr.indexOf(item);
-
-    if (index > -1) {
-      return arr.splice(index, 1);
-    }
+    if (index > -1) return arr.splice(index, 1);
   }
 }
 
-function uniqueObjectKeys(ob, target) {
+exports.remove = remove;
+
+function uniqueObjectKeys(ob, target, victims, cb) {
   var targetKeys = Object.keys(ob[target]);
-
-  for (var _len2 = arguments.length, args = new Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-    args[_key2 - 2] = arguments[_key2];
-  }
-
-  var destination = args.slice(0, args.length - 1);
-  var cb = args[args.length - 1];
 
   for (var i = 0; i < targetKeys.length; i++) {
     var existsIn = false;
     var key = targetKeys[i];
 
-    for (var j = 0; j < destination.length; j++) {
-      if (ob[destination[j]][key]) {
-        existsIn = destination[j];
+    for (var j = 0; j < victims.length; j++) {
+      if (ob[victims[j]][key]) {
+        existsIn = victims[j];
         break;
       }
     }
 
-    if (!existsIn) cb(key);else warn("(".concat(target, " - '").concat(key, "') is already defined in ").concat(existsIn));
+    if (!existsIn) cb(key);else exports.warn("(" + target + " - '" + key + "') is already defined in " + existsIn);
   }
 }
 
-var isPlainObject = function isPlainObject(obj) {
+exports.uniqueObjectKeys = uniqueObjectKeys;
+
+exports.isPlainObject = function (obj) {
   return toString.call(obj) === '[object Object]';
 };
 
-exports.isPlainObject = isPlainObject;
-
-var isObject = function isObject(obj) {
+exports.isObject = function (obj) {
   return obj !== null && _typeof(obj) === 'object';
 };
 
-exports.isObject = isObject;
-var hasProto = '__proto__' in {};
-exports.hasProto = hasProto;
+exports.hasProto = '__proto__' in {};
 
-var warn = function warn(msg) {
-  return console.error("[v-react warn]: ".concat(msg));
+exports.warn = function (msg) {
+  return console.error("[v-react warn]: " + msg);
 };
-
-exports.warn = warn;
 },{}],"src/reactivity/dep.ts":[function(require,module,exports) {
 "use strict";
 
@@ -231,6 +217,8 @@ function () {
   };
 
   Dep.prototype.notify = function () {
+    console.log("notifying...", this.subs);
+
     for (var i = 0; i < this.subs.length; i++) {
       this.subs[i].update();
     }
@@ -255,7 +243,50 @@ function popTarget() {
 }
 
 exports.popTarget = popTarget;
-},{"../utils":"src/utils/index.js"}],"src/reactivity/observer.ts":[function(require,module,exports) {
+},{"../utils":"src/utils/index.ts"}],"src/reactivity/array.ts":[function(require,module,exports) {
+"use strict";
+
+exports.__esModule = true;
+
+function def(obj, key, val, enumerable) {
+  Object.defineProperty(obj, key, {
+    value: val,
+    enumerable: !!enumerable,
+    writable: true,
+    configurable: true
+  });
+}
+
+exports.def = def;
+/*
+ * not type checking this file because flow doesn't play well with
+ * dynamically accessing methods on Array prototype
+ */
+
+var arrayProto = Array.prototype;
+exports.arrayMethods = Object.create(arrayProto);
+var methodsToPatch = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+/**
+ * Intercept mutating methods and emit events
+ */
+
+methodsToPatch.forEach(function (method) {
+  // cache original method
+  var original = arrayProto[method];
+  var t = def(exports.arrayMethods, method, function mutator() {
+    var args = [];
+
+    for (var _i = 0; _i < arguments.length; _i++) {
+      args[_i] = arguments[_i];
+    }
+
+    var result = original.apply(this, args);
+    var ob = this.__ob__;
+    ob.dep.notify();
+    return result;
+  }); // console.log(arrayMethods);
+});
+},{}],"src/reactivity/observer.ts":[function(require,module,exports) {
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -288,6 +319,8 @@ var utils_1 = require("../utils");
 
 var dep_1 = __importDefault(require("./dep"));
 
+var array_1 = require("./array");
+
 var Observer =
 /** @class */
 function () {
@@ -296,7 +329,14 @@ function () {
     this.value = null;
     this.dep = new dep_1["default"]();
     this.value = value;
-    this.walk();
+
+    if (Array.isArray(value)) {
+      value.__proto__ = array_1.arrayMethods;
+      this.observeArray(value);
+    } else if (_typeof(value) == "object") {
+      this.walk();
+    }
+
     Object.defineProperty(value, "__ob__", {
       enumerable: false,
       value: this
@@ -311,10 +351,27 @@ function () {
     }
   };
 
+  Observer.prototype.observeArray = function (arr) {
+    arr.forEach(function (item) {
+      observe(item);
+    });
+  };
+
   return Observer;
 }();
 
 exports.Observer = Observer;
+
+function dependArray(value) {
+  for (var e = void 0, i = 0, l = value.length; i < l; i++) {
+    e = value[i];
+    e && e.__ob__ && e.__ob__.dep.depend();
+
+    if (Array.isArray(e)) {
+      dependArray(e);
+    }
+  }
+}
 
 function defineReactive(obj, key) {
   var value = obj[key],
@@ -331,6 +388,7 @@ function defineReactive(obj, key) {
 
         if (childOb) {
           childOb.dep.depend();
+          dependArray(value);
         }
       }
 
@@ -361,7 +419,7 @@ function set(obj, key, value) {
 }
 
 exports.set = set;
-},{"../utils":"src/utils/index.js","./dep":"src/reactivity/dep.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
+},{"../utils":"src/utils/index.ts","./dep":"src/reactivity/dep.ts","./array":"src/reactivity/array.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -472,13 +530,14 @@ function () {
 exports["default"] = Watcher;
 
 var traverse = function traverse(obj) {
-  var keys = Object.keys(obj);
+  var keys = _typeof(obj) === "object" ? Object.keys(obj) : obj;
 
   for (var i = 0; i < keys.length; i++) {
+    console.log("traverse", obj[keys[i]]);
     return obj[keys[i]];
   }
 };
-},{"./dep":"src/reactivity/dep.ts","../utils":"src/utils/index.js"}],"src/reactivity/index.ts":[function(require,module,exports) {
+},{"./dep":"src/reactivity/dep.ts","../utils":"src/utils/index.ts"}],"src/reactivity/index.ts":[function(require,module,exports) {
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -545,7 +604,7 @@ exports.initComputed = function (comp) {
     utils_1.proxy(comp, key, get, set);
   });
 };
-},{"./observer":"src/reactivity/observer.ts","./watcher":"src/reactivity/watcher.ts","../utils":"src/utils/index.js"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
+},{"./observer":"src/reactivity/observer.ts","./watcher":"src/reactivity/watcher.ts","../utils":"src/utils/index.ts"}],"node_modules/object-assign/index.js":[function(require,module,exports) {
 /*
 object-assign
 (c) Sindre Sorhus
@@ -24698,10 +24757,7 @@ function (_ReactV$Component2) {
     _this3 = _possibleConstructorReturn(this, (_getPrototypeOf3 = _getPrototypeOf(App)).call.apply(_getPrototypeOf3, [this].concat(args)));
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "state", {
-      age: 16,
-      o: {
-        name: "hi"
-      }
+      arr: ["proots", ["prev", "loots"]]
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "watch", {
@@ -24718,25 +24774,23 @@ function (_ReactV$Component2) {
     value: function mounted() {
       var _this4 = this;
 
-      console.log("mounted");
       setTimeout(function () {
-        console.log("changed", _this4);
-        _this4.o.name = "proots"; // this.set(this.o, "gender", "male");
+        _this4.arr[1].push("akoots");
+
+        console.log("this", _this4.arr);
       }, 1000);
     }
   }, {
     key: "render",
     value: function render() {
-      var _this5 = this;
-
-      var o = this.o,
+      var arr = this.arr,
           age = this.age,
           calc = this.calc;
-      return _react.default.createElement("div", null, _react.default.createElement("p", null, age), Object.keys(this.o).map(function (key) {
+      return _react.default.createElement("div", null, arr.map(function (key) {
         return _react.default.createElement("p", {
           key: key
-        }, key, " : ", _this5.o[key]);
-      }), _react.default.createElement("p", null, calc));
+        }, key);
+      }));
     }
   }]);
 
@@ -24771,7 +24825,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "54668" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50343" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);

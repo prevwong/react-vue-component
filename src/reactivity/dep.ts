@@ -1,6 +1,5 @@
 import { remove } from "../utils";
 import Watcher from "./watcher";
-import { observe } from "./observer";
 
 let id: number = 0;
 export default class Dep {
@@ -22,6 +21,7 @@ export default class Dep {
         }
     }
     notify(): void {
+        console.log("notifying...", this.subs)
         for ( let i = 0; i < this.subs.length; i++ ) {
             this.subs[i].update();
         }

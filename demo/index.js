@@ -4,7 +4,7 @@ import ReactDOM from "react-dom"
 
 class SubApp extends ReactV.Component {
     state = {
-        times: 2
+        times: 2,
     }
     mounted() {
         setTimeout(() => {
@@ -21,8 +21,7 @@ class SubApp extends ReactV.Component {
 }
 class App extends ReactV.Component {
     state = {
-       age: 16,
-       o : { name: "hi"}
+        arr: ["proots", ["prev", "loots"]]
     }
     watch = {
         o(v, old ){
@@ -30,22 +29,18 @@ class App extends ReactV.Component {
         }
     }
     mounted() {
-        console.log("mounted")
         setTimeout(() => {
-            console.log("changed", this)
-            this.o.name = "proots"
-            // this.set(this.o, "gender", "male");
+                this.arr[1].push("akoots");
+                console.log("this", this.arr)
         }, 1000);
     }
     render(){
-        const { o, age, calc} = this;
+        const { arr, age, calc} = this;
         return (
             <div>
-                <p>{age}</p>
-                {Object.keys(this.o).map(key => {
-                    return <p key={key}>{key} : {this.o[key]}</p>
+                {arr.map(key => {
+                    return <p key={key}>{key}</p>
                 })}
-                <p>{calc}</p>
             </div>
         )
     }
