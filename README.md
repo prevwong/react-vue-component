@@ -1,7 +1,12 @@
 # react-vue-component
 Build Vue-like components in React (watch, computed & no more setState)
 
+# Installation
+`$ npm install --save-dev react-vue-component`
+
 # Usage
+- Import the `Component` from the `react-vue-component`
+- Use `ReactVC.Component` when creating new components
 ```js
 import ReactVC from "react-vue-component"
 
