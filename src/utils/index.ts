@@ -45,7 +45,7 @@ export function uniqueObjectKeys(ob: VueIshComponent, target:string, victims:str
     }    
 }
 
-export const isPlainObject = (obj: object): boolean => toString.call(obj) === '[object Object]'
+export const isPlainObject = (obj: object): boolean => global.toString.call(obj) === '[object Object]'
 export const isObject = (obj: object): boolean => obj !== null && typeof obj === 'object'
 export const hasProto = '__proto__' in {}
 export const warn = (msg: string): void => console.error(`[v-react warn]: ${msg}`);

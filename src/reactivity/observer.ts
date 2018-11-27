@@ -90,3 +90,12 @@ export function set(obj: InspectedObject, key: string, value: any): void {
     defineReactive(obj, key, value);
     ob.dep.notify();
 }
+
+export function del(obj: InspectedObject, key: string): void {
+    const ob = obj.__ob__;
+    if ( ob ) {
+        delete obj[key];
+        console.log("after delete...")
+        ob.dep.notify();
+    }
+}

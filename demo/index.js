@@ -33,7 +33,9 @@ class App extends ReactV.Component {
         setTimeout(() => {
             this.obj.name = "Prev Pong";
             setTimeout(() => {
-                this.obj.age = 20;
+                // this.obj.age = 20;
+                this.del(this.obj, "name");
+                console.log("deleted...")
             }, 1000);
         }, 1000);
     }

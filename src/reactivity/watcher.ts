@@ -68,7 +68,9 @@ export default class Watcher {
 } 
 
 const traverse = (obj: object | Array<any>) : void => {
+    if ( !obj ) return;
     const keys: Array<any> = typeof obj === "object" ? Object.keys(obj) : obj;
+    console.log("keys", keys, obj);
     for ( let i = 0; i < keys.length; i++ ) {
         return obj[keys[i]]
     }

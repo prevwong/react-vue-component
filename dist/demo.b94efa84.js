@@ -105,6 +105,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   // Override the current require with this new one
   return newRequire;
 })({"src/utils/index.ts":[function(require,module,exports) {
+var global = arguments[3];
 "use strict";
 
 function _typeof(obj) { if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
@@ -173,7 +174,7 @@ function uniqueObjectKeys(ob, target, victims, cb) {
 exports.uniqueObjectKeys = uniqueObjectKeys;
 
 exports.isPlainObject = function (obj) {
-  return toString.call(obj) === '[object Object]';
+  return global.toString.call(obj) === '[object Object]';
 };
 
 exports.isObject = function (obj) {
@@ -420,6 +421,18 @@ function set(obj, key, value) {
 }
 
 exports.set = set;
+
+function del(obj, key) {
+  var ob = obj.__ob__;
+
+  if (ob) {
+    delete obj[key];
+    console.log("after delete...");
+    ob.dep.notify();
+  }
+}
+
+exports.del = del;
 },{"../utils":"src/utils/index.ts","./dep":"src/reactivity/dep.ts","./array":"src/reactivity/array.ts"}],"src/reactivity/watcher.ts":[function(require,module,exports) {
 "use strict";
 
@@ -531,7 +544,9 @@ function () {
 exports["default"] = Watcher;
 
 var traverse = function traverse(obj) {
+  if (!obj) return;
   var keys = _typeof(obj) === "object" ? Object.keys(obj) : obj;
+  console.log("keys", keys, obj);
 
   for (var i = 0; i < keys.length; i++) {
     return obj[keys[i]];
@@ -2739,6 +2754,7 @@ function (_super) {
     _this._watch = {};
     _this.state = {};
     _this.set = observer_1.set;
+    _this.del = observer_1.del;
     _this.methods = {};
     _this.computed = {};
     _this.watch = {};
@@ -24801,7 +24817,10 @@ function (_ReactV$Component2) {
       setTimeout(function () {
         _this4.obj.name = "Prev Pong";
         setTimeout(function () {
-          _this4.obj.age = 20;
+          // this.obj.age = 20;
+          _this4.del(_this4.obj, "name");
+
+          console.log("deleted...");
         }, 1000);
       }, 1000);
     }
@@ -24852,7 +24871,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49518" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50267" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);
