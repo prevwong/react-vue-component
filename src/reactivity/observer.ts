@@ -49,8 +49,8 @@ function dependArray(value) {
 }
 
 
-export function defineReactive(obj: object, key: string): object {
-    let value = obj[key],
+export function defineReactive(obj: object, key: string, val?:any): object {
+    let value = val ? val : obj[key],
         stripValue = typeof value === "object" ? {...value} : value;
     const dep = new Dep();
     // const childOb
@@ -87,6 +87,6 @@ export function observe(value: any) : Observer {
 
 export function set(obj: InspectedObject, key: string, value: any): void {
     const ob = obj.__ob__;
-
-    console.log(ob);
+    defineReactive(obj, key, value);
+    ob.dep.notify();
 }

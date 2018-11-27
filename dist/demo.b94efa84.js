@@ -373,8 +373,8 @@ function dependArray(value) {
   }
 }
 
-function defineReactive(obj, key) {
-  var value = obj[key],
+function defineReactive(obj, key, val) {
+  var value = val ? val : obj[key],
       stripValue = _typeof(value) === "object" ? __assign({}, value) : value;
   var dep = new dep_1["default"](); // const childOb
 
@@ -415,7 +415,8 @@ exports.observe = observe;
 
 function set(obj, key, value) {
   var ob = obj.__ob__;
-  console.log(ob);
+  defineReactive(obj, key, value);
+  ob.dep.notify();
 }
 
 exports.set = set;
@@ -533,7 +534,6 @@ var traverse = function traverse(obj) {
   var keys = _typeof(obj) === "object" ? Object.keys(obj) : obj;
 
   for (var i = 0; i < keys.length; i++) {
-    console.log("traverse", obj[keys[i]]);
     return obj[keys[i]];
   }
 };
@@ -575,15 +575,24 @@ exports.initState = function (comp) {
 exports.initWatch = function (comp) {
   Object.keys(comp._state).forEach(function (key, i) {
     new watcher_1["default"](comp, key, function (newValue, oldValue) {
-      if (comp.watch && comp.watch[key]) {
-        comp.watch[key].call(comp, newValue, oldValue);
-      }
-
       comp.setState({
         key: comp.state[key]
       });
     });
   });
+  var watch = comp.watch;
+  Object.keys(watch).forEach(function (key) {
+    exports.createWatcher(comp, key, watch[key]);
+  });
+};
+
+exports.createWatcher = function (comp, state, handler) {
+  if (utils_1.isPlainObject(handler)) {
+    handler = handler.handler;
+    return exports.createWatcher(comp, state, handler);
+  }
+
+  new watcher_1["default"](comp, state, handler);
 };
 
 exports.initComputed = function (comp) {
@@ -2716,6 +2725,8 @@ exports.__esModule = true;
 
 var React = __importStar(require("react"));
 
+var observer_1 = require("../reactivity/observer");
+
 var VueIshComponent =
 /** @class */
 function (_super) {
@@ -2727,9 +2738,7 @@ function (_super) {
     _this._state = {};
     _this._watch = {};
     _this.state = {};
-
-    _this.set = function () {};
-
+    _this.set = observer_1.set;
     _this.methods = {};
     _this.computed = {};
     _this.watch = {};
@@ -2746,7 +2755,7 @@ function (_super) {
 }(React.Component);
 
 exports["default"] = VueIshComponent;
-},{"react":"node_modules/react/index.js"}],"src/ReactV.ts":[function(require,module,exports) {
+},{"react":"node_modules/react/index.js","../reactivity/observer":"src/reactivity/observer.ts"}],"src/ReactV.ts":[function(require,module,exports) {
 "use strict";
 
 var __extends = this && this.__extends || function () {
@@ -24757,12 +24766,27 @@ function (_ReactV$Component2) {
     _this3 = _possibleConstructorReturn(this, (_getPrototypeOf3 = _getPrototypeOf(App)).call.apply(_getPrototypeOf3, [this].concat(args)));
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "state", {
-      arr: ["proots", ["prev", "loots"]]
+      arr: ["proots", ["prev", "loots"]],
+      number: 2,
+      number2: 10,
+      obj: {
+        name: "Prev",
+        age: 16
+      }
     });
 
     _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "watch", {
-      o: function o(v, old) {
-        console.log("object changed", v, old);
+      'obj.name': function objName(v, old) {
+        console.log("name changed", v, old);
+      },
+      'obj.age': function objAge(v, old) {
+        console.log("age changed", v, old);
+      }
+    });
+
+    _defineProperty(_assertThisInitialized(_assertThisInitialized(_this3)), "computed", {
+      calc: function calc() {
+        return this.number + this.number2;
       }
     });
 
@@ -24775,22 +24799,25 @@ function (_ReactV$Component2) {
       var _this4 = this;
 
       setTimeout(function () {
-        _this4.arr[1].push("akoots");
-
-        console.log("this", _this4.arr);
+        _this4.obj.name = "Prev Pong";
+        setTimeout(function () {
+          _this4.obj.age = 20;
+        }, 1000);
       }, 1000);
     }
   }, {
     key: "render",
     value: function render() {
+      var _this5 = this;
+
       var arr = this.arr,
           age = this.age,
           calc = this.calc;
-      return _react.default.createElement("div", null, arr.map(function (key) {
+      return _react.default.createElement("div", null, Object.keys(this.obj).map(function (o) {
         return _react.default.createElement("p", {
-          key: key
-        }, key);
-      }));
+          key: o
+        }, "".concat(o, " : ").concat(_this5.obj[o]));
+      }), _react.default.createElement("p", null, calc));
     }
   }]);
 
@@ -24798,7 +24825,7 @@ function (_ReactV$Component2) {
 }(_ReactV.default.Component);
 
 _reactDom.default.render(_react.default.createElement(App, null), document.getElementById("main"));
-},{"../src/ReactV.ts":"src/ReactV.ts","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"../src/ReactV.ts":"src/ReactV.ts","react":"node_modules/react/index.js","react-dom":"node_modules/react-dom/index.js"}],"../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -24825,7 +24852,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50343" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49518" + '/');
 
   ws.onmessage = function (event) {
     var data = JSON.parse(event.data);
@@ -24967,5 +24994,5 @@ function hmrAccept(bundle, id) {
     return hmrAccept(global.parcelRequire, id);
   });
 }
-},{}]},{},["../../../../../usr/local/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js","demo/index.js"], null)
+},{}]},{},["../../../.npm-global/lib/node_modules/parcel/src/builtins/hmr-runtime.js","demo/index.js"], null)
 //# sourceMappingURL=/demo.b94efa84.map

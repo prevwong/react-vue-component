@@ -21,26 +21,43 @@ class SubApp extends ReactV.Component {
 }
 class App extends ReactV.Component {
     state = {
-        arr: ["proots", ["prev", "loots"]]
-    }
-    watch = {
-        o(v, old ){
-            console.log("object changed", v, old)
+        arr: ["proots", ["prev", "loots"]],
+        number: 2,
+        number2: 10,
+        obj : {
+            name: "Prev",
+            age: 16
         }
     }
     mounted() {
         setTimeout(() => {
-                this.arr[1].push("akoots");
-                console.log("this", this.arr)
+            this.obj.name = "Prev Pong";
+            setTimeout(() => {
+                this.obj.age = 20;
+            }, 1000);
         }, 1000);
+    }
+    watch = {
+        'obj.name'(v, old) {
+            console.log("name changed", v, old);
+        },
+        'obj.age'(v, old) {
+            console.log("age changed", v, old);
+        }
+    }
+    computed = {
+        calc() {
+            return this.number + this.number2;
+        }
     }
     render(){
         const { arr, age, calc} = this;
         return (
             <div>
-                {arr.map(key => {
-                    return <p key={key}>{key}</p>
-                })}
+                {
+                   Object.keys(this.obj).map(o => <p key={o}>{`${o} : ${this.obj[o]}`}</p>)
+                }
+                <p>{calc}</p>
             </div>
         )
     }

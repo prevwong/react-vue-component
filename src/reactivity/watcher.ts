@@ -1,16 +1,17 @@
 import Dep, { pushTarget, popTarget } from "./dep";
 import {Component} from "react";
 import { isObject } from "../utils";
+import VueIshComponent from "../types/VueIshComponent";
 
 export default class Watcher {
-    comp: Component = null
+    comp: VueIshComponent = null
     cb: Function
     deps: Array<Dep> = []
     depIds: Set<number> = new Set()
     getter: Function = () => {}
     value: any
     oldValue: any
-    constructor(comp: Component, value:any, cb: Function = () => {}) {
+    constructor(comp: VueIshComponent, value:any, cb: Function = () => {}) {
        this.comp = comp;
        this.cb = cb;
        this.getter = typeof value === "function" ? value : this.parsePath(value);
@@ -69,7 +70,6 @@ export default class Watcher {
 const traverse = (obj: object | Array<any>) : void => {
     const keys: Array<any> = typeof obj === "object" ? Object.keys(obj) : obj;
     for ( let i = 0; i < keys.length; i++ ) {
-        console.log("traverse", obj[keys[i]])
         return obj[keys[i]]
     }
 }
