@@ -4,7 +4,9 @@
   "description": "Vuex-like state management for React",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "crowdin-upload": "crowdin --config ./crowdin.yaml upload sources --auto-update -b master",
+    "crowdin-download": "crowdin --config ./crowdin.yaml download -b master"
   },
   "repository": {
     "type": "git",

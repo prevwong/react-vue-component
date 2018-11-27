@@ -1,0 +1,12 @@
+{
+  "docs": {
+    "Intro": ["getting_started"],
+    "Guides": [
+      "states",
+      "watchers",
+      "computed",
+      "methods",
+      "set"
+    ]
+  }
+}
