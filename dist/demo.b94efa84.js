@@ -427,7 +427,6 @@ function del(obj, key) {
 
   if (ob) {
     delete obj[key];
-    console.log("after delete...");
     ob.dep.notify();
   }
 }

@@ -3,10 +3,6 @@ import Dep from "./dep";
 import InspectedObject from "../types/InspectedObject";
 import { arrayMethods } from "./array";
 
-interface ArrObject {
-    __proto__? : any
-}
-
 export class Observer  {
     __ob__: Observer = this
     value: object = null
@@ -95,7 +91,6 @@ export function del(obj: InspectedObject, key: string): void {
     const ob = obj.__ob__;
     if ( ob ) {
         delete obj[key];
-        console.log("after delete...")
         ob.dep.notify();
     }
 }
