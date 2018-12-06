@@ -15,7 +15,7 @@ Build Vue-like components in React (watch, computed & no more setState)
       state = {
           name: "Bob", 
       }
-      mounted() {
+      componentDidMount() {
           this.name = "Albert";
       }
       watch {
@@ -91,3 +91,19 @@ class App extends Component {
   }
 }
 ```
+
+
+
+## Caveats
+
+-  Behind the scenes,`componentWillMount` is being used to inject Vue's reactivity system thus it is made impossible to overwrite. Instead, use `beforeMount` as an equivalent replacement:
+
+- ```jsx
+  import {Component} from "react-vue-component";
+  class App extends Component {
+      beforeMount(){
+          console.log("before mount! component hasnt render yet...")
+      }
+      ...
+  }
+  ```
