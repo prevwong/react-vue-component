@@ -1,8 +1,10 @@
 # react-vue-component
 
-Build Vue-like components in React (watch, computed & no more setState)
+Build Vue-like components in React. Get the goodness of Vue-reactivty system such as watchers and computed properties and remove the need of using React's `setState` completely. 
 
-# Installation
+
+
+## Installation
 
 `$ npm install --save-dev react-vue-component`
 
@@ -70,12 +72,14 @@ class App extends Component {
       }
   }
   watch {
+      // nested watchers
       "obj.name" : (newName, oldName) => {
           console.log("Obj.name has changed");
       }
       "obj.age" : (newAge, oldAge) => {
           console.log("Obj.age has changed");
       }
+
   }
   render() {
       const {obj} = this;
@@ -107,3 +111,15 @@ class App extends Component {
       ...
   }
   ```
+
+
+
+# Q&A
+
+- Why do this ? 
+
+  - Lel cuz react suks. Just kidding, but personally I admire Vue for it's simple and easy-to-use components and always wanted something similar whenever I'm on React, especially the ability to `watch` properties (in React, afaik you gotta compare the previous and current states manually in `componentDidUpdate`). 
+
+# Credits
+
+- All credits to the Vue core team for their awesome reactivity system. 
