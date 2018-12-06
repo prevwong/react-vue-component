@@ -14,21 +14,32 @@ Build Vue-like components in React (watch, computed & no more setState)
   class App extends Component {
       state = {
           name: "Bob", 
-          obj: { }
       }
       mounted() {
           
       }
+      watch {
+          name(newName, oldName) {
+              console.log("name has changed!");
+          },
+      }
+      computed {
+          fullName(){
+              return this.name + " Lolzer";
+          }
+      }
+      methods {
+          changeName() {
+              this.name = "John"; // Changing name will also change the computed property fullName
+          }
+      }
       render() {
+          const {name, obj} = this; // states, methods, and computed properties can be accessed directly via `this` just like in Vue
           return (
               <div>
                   <p>{name}</p>
-                  <div>
-                        {
-                            Object.keys(obj).map(key => 
-                                <p><strong>{key}</strong>: {obj[key]}</p>
-                        }
-                  </div>   
+                  <p>{fullName}</p>
+                  <a onClick={() => this.changeName()}>Change my name</a>  
               </div>   
           )
       }
