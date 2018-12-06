@@ -16,5 +16,21 @@ Build Vue-like components in React (watch, computed & no more setState)
           name: "Bob", 
           obj: { }
       }
+      mounted() {
+          
+      }
+      render() {
+          return (
+              <div>
+                  <p>{name}</p>
+                  <div>
+                        {
+                            Object.keys(obj).map(key => 
+                                <p><strong>{key}</strong>: {obj[key]}</p>
+                        }
+                  </div>   
+              </div>   
+          )
+      }
   }
   ```
