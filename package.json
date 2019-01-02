@@ -1,39 +1,35 @@
 {
-  "name": "reactx",
+  "name": "react-vue-component",
   "version": "1.0.0",
-  "description": "Vuex-like state management for React",
-  "main": "index.js",
+  "description": "Create Vue-like components in React (watchers, computed properties etc)",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/prevwong/reactx.git"
+    "url": "git+https://github.com/prevwong/react-vue-component.git"
   },
   "keywords": [
     "react",
-    "reactx",
-    "vuex",
-    "state",
-    "management",
-    "simple",
-    "redux"
+    "vue",
+    "computed",
+    "watchers",
+    "vue-in-react"
   ],
   "author": "Prev Wong",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/prevwong/reactx/issues"
+    "url": "https://github.com/prevwong/react-vue-component/issues"
   },
-  "homepage": "https://github.com/prevwong/reactx#readme",
+  "homepage": "https://github.com/prevwong/react-vue-component#readme",
   "dependencies": {
     "@types/es6-shim": "^0.31.39",
     "@types/node": "^10.12.10",
     "@types/react": "^16.7.7",
     "@types/react-dom": "^16.0.10",
     "react": "^16.2.0",
-    "react-dom": "^16.2.0",
-    "react-native-calendars": "^1.21.0",
-    "vue": "^2.5.17"
+    "react-dom": "^16.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.2.0",
