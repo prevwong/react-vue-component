@@ -1,68 +1,38 @@
-import ReactV from "../src/ReactV.ts";
-import React from "react";
-import ReactDOM from "react-dom"
+import React, { Component } from "react";
+import ReactDOM from 'react-dom';
+import ReactV from '../src/index.ts';
 
-class SubApp extends ReactV.Component {
-    state = {
-        times: 2,
-    }
-    mounted() {
-        setTimeout(() => {
-            this.times = 4;
-        }, 2000)
-    }
-    render() {
-        const {link} = this.props
-        const { times } = this;
-        return (
-            <a>{link} + {times}</a>
-        )
-    }
-}
 class App extends ReactV.Component {
-    state = {
-        arr: ["proots", ["prev", "loots"]],
-        number: 2,
-        number2: 10,
-        obj : {
-            name: "Prev",
-            age: 16
-        }
+  state = {
+    input: "",
+    obj: {
+      name: "Prev Wong"
     }
-    mounted() {
-        setTimeout(() => {
-            this.obj.name = "Prev Pong";
-            setTimeout(() => {
-                // this.obj.age = 20;
-                this.del(this.obj, "name");
-                console.log("deleted...")
-            }, 1000);
-        }, 1000);
-    }
-    watch = {
-        'obj.name'(v, old) {
-            console.log("name changed", v, old);
-        },
-        'obj.age'(v, old) {
-            console.log("age changed", v, old);
-        }
-    }
-    computed = {
-        calc() {
-            return this.number + this.number2;
-        }
-    }
-    render(){
-        const { arr, age, calc} = this;
-        return (
-            <div>
-                {
-                   Object.keys(this.obj).map(o => <p key={o}>{`${o} : ${this.obj[o]}`}</p>)
-                }
-                <p>{calc}</p>
-            </div>
-        )
-    }
+  }
+  mounted() {
+    setTimeout(() => {
+      this.obj.name = 'John Pong';
+    }, 1000);
+  }
+  onChange(e) {
+    this.input = e.target.value;
+  }
+  render() {
+    return (
+      <div>
+        <div style={{ marginBottom: "20px" }}>
+          <span>input: </span><input type="text" onKeyUp={(e) => this.onChange(e)} />
+        </div>
+        <div>
+          <span>States:</span>
+          {JSON.stringify({
+            input: this.input,
+            obj: this.obj
+          })}
+        </div>
+      </div>
+    )
+  }
 }
 
-ReactDOM.render(<App />, document.getElementById("main"));
+ReactDOM.render(<App />, document.getElementById('main'));

@@ -1,6 +1,6 @@
 import VueIshComponent from "../types/VueIshComponent";
 
-export function proxy(target:object, key:string, ...args: any[]): object {
+export function proxy(target: object, key: string, ...args: any[]): object {
     let get, set;
     if (args.length === 2) {
         get = args[0];
@@ -22,16 +22,16 @@ export function proxy(target:object, key:string, ...args: any[]): object {
 }
 
 
-export function remove(arr: any[], item: any): any[]{
+export function remove(arr: any[], item: any): any[] {
     if (arr.length) {
         const index = arr.indexOf(item)
         if (index > -1) return arr.splice(index, 1)
     }
 }
 
-export function uniqueObjectKeys(ob: VueIshComponent, target:string, victims:string[], cb: Function): void {  
+export function uniqueObjectKeys(ob: VueIshComponent, target: string, victims: string[], cb: Function): void {
     const targetKeys = Object.keys(ob[target]);
-    for ( let i = 0; i < targetKeys.length; i++ ) {
+    for (let i = 0; i < targetKeys.length; i++) {
         let existsIn: boolean | string = false;
         const key = targetKeys[i];
         for (let j = 0; j < victims.length; j++) {
@@ -42,11 +42,11 @@ export function uniqueObjectKeys(ob: VueIshComponent, target:string, victims:str
         }
         if (!existsIn) cb(key);
         else warn(`(${target} - '${key}') is already defined in ${existsIn}`);
-    }    
+    }
 }
 
 export const isPlainObject = (obj: object): boolean => global.toString.call(obj) === '[object Object]'
 export const isObject = (obj: object): boolean => obj !== null && typeof obj === 'object'
 export const hasProto = '__proto__' in {}
-export const warn = (msg: string): void => console.error(`[v-react warn]: ${msg}`);
+export const warn = (msg: string): void => console.error(`[react-vue-comp warn]: ${msg}`);
 
