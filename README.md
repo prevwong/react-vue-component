@@ -112,14 +112,6 @@ class App extends Component {
   }
   ```
 
-
-
-# Q&A
-
-- Why do this ? 
-
-  - Lel cuz react suks. Just kidding, but personally I admire Vue for it's simple and easy-to-use components and always wanted something similar whenever I'm on React, especially the ability to `watch` properties (in React, afaik you gotta compare the previous and current states manually in `componentDidUpdate`). 
-
 # Credits
 
 - All credits to the Vue core team for their awesome reactivity system. 
